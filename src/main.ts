@@ -27,6 +27,7 @@ let scale = 1;
 function newBattle(): void {
   state = createBattle(Date.now() & 0x7fffffff, 'eisvogel', 'schrotthai');
   renderer = new Renderer(canvas, state);
+  renderer.scale = canvas.width / VIEW_W;
   paused = true;
   selectedWeapon = null;
   hoverRoom = null;
@@ -69,12 +70,19 @@ const hud = new Hud(hudRoot, floatRoot, {
   restart: newBattle,
 });
 
-// Bildschirmgröße: ganzzahlig skalieren, damit die Pixel scharf bleiben
+// Bildschirmgröße: Das Spielbild füllt das Fenster. Gezeichnet wird in einem ganzzahligen
+// Vielfachen der Spielauflösung, damit die Pixel auch bei krummen Fenstergrößen sauber bleiben.
 function resize(): void {
-  scale = Math.max(1, Math.floor(Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H)));
+  scale = Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H);
   stage.style.transform = `scale(${scale})`;
   stage.style.left = `${Math.max(0, Math.floor((window.innerWidth - VIEW_W * scale) / 2))}px`;
   stage.style.top = `${Math.max(0, Math.floor((window.innerHeight - VIEW_H * scale) / 2))}px`;
+  const exact = scale * window.devicePixelRatio;
+  const pixelScale = Math.max(1, Math.min(6, Math.ceil(exact - 0.01)));
+  canvas.width = VIEW_W * pixelScale;
+  canvas.height = VIEW_H * pixelScale;
+  canvas.style.imageRendering = Math.abs(exact - pixelScale) < 0.01 ? 'pixelated' : 'auto';
+  renderer.scale = pixelScale;
 }
 window.addEventListener('resize', resize);
 
@@ -119,10 +127,10 @@ function handleEvents(): void {
   for (const ev of state.events) {
     if (ev.type === 'miss') {
       const p = projectilePos(state, ev.proj);
-      hud.floatText(p.x, p.y - 8, 'verfehlt', 'miss');
+      hud.floatText(p.x, p.y - 12, 'verfehlt', 'miss');
     } else if (ev.type === 'hit') {
       const c = roomCenter(ev.target, SHIPS[state[ev.target].defId], ev.room);
-      hud.floatText(c.x, c.y - 10, `-${ev.damage}`, ev.target === 'player' ? 'bad' : 'good');
+      hud.floatText(c.x, c.y - 16, `-${ev.damage}`, ev.target === 'player' ? 'bad' : 'good');
     } else if (ev.type === 'destroyed') {
       outcomeAt = performance.now() + 1700;
     }

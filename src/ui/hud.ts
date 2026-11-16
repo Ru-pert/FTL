@@ -98,9 +98,10 @@ export function renderHud(state: BattleState, view: HudView): string {
     </div></div>`;
   } else if (view.paused && state.outcome === 'ongoing') {
     html += `<div class="pause">
-      <div><span class="hot">PAUSE</span> · <b>Leertaste</b>: fortsetzen oder anhalten</div>
-      <div><b>Waffe anklicken</b> (oder Taste 1, 2), dann <b>Raum beim Gegner</b> als Ziel wählen</div>
-      <div><b>Linksklick</b>: mehr Energie · <b>Rechtsklick</b>: weniger · Freie Energie repariert schneller</div>
+      <div><span class="hot">PAUSE</span> · <b>Leertaste</b>: weiter</div>
+      <div><b>Waffe</b> anklicken oder Taste 1, 2</div>
+      <div>dann <b>Raum beim Gegner</b> anklicken</div>
+      <div>Energie: <b>Links-</b> und <b>Rechtsklick</b></div>
     </div>`;
   }
   return html;

@@ -39,11 +39,16 @@ bestehenden Titels: Name, Fraktionen, Schiffe, Grafik und Texte sind eigene.
 
 ## Grafik
 
-- Pixel-Art, interne Auflösung 640×360, ganzzahlig skaliert, ohne Glättung.
-- Schiffskachel 16×16 Pixel. Schiffe liegen in den Daten immer mit Bug nach rechts;
+- Pixel-Art, interne Auflösung 960×540. Das Bild füllt das Fenster; gezeichnet wird in
+  einem ganzzahligen Vielfachen der Auflösung, ohne Glättung.
+- Schiffskachel 24×24 Pixel. Schiffe liegen in den Daten immer mit Bug nach rechts;
   das gegnerische Schiff wird gespiegelt gezeichnet.
-- Grafik wird vorerst per Code erzeugt (`src/render/sprites.ts`) und soll später durch
-  gezeichnete Dateien ersetzbar bleiben.
+- Aussehen der Schiffe steht als Daten in `src/data/shipArt.ts`: Rumpfteile als
+  Vielecke (in Kacheln), Farben, Einrichtung der Räume, Triebwerke, Lichter.
+  `src/render/sprites.ts` macht daraus die Pixelgrafik (Kontur, Schattierung, Platten).
+- Jedes Schiff hat eine erkennbare Gestalt (Eisvogel = Vogel, Schrotthai = Hai).
+  Neue Schiffe ebenso entwerfen, nicht als Kasten um die Räume.
+- Die Bedienoberfläche ist für 640×360 gebaut und wird per CSS um 1,5 vergrößert.
 - Schrift: VT323. Text gehört in die HTML-Oberfläche, nicht ins Canvas.
 
 ## Spielregeln (Stand Meilenstein 1)

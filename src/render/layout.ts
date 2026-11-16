@@ -1,11 +1,10 @@
 // Wo die Schiffe auf dem Bildschirm stehen. Wird von Darstellung und Eingabe gemeinsam genutzt.
+import { SHIP_ART, type ShipArt } from '../data/shipArt';
 import type { RoomDef, ShipDef, Side } from '../sim/types';
 
-export const VIEW_W = 640;
-export const VIEW_H = 360;
-export const TILE = 16;
-/** Abstand der Außenhülle von den Räumen in Pixeln. */
-export const HULL_MARGIN = 7;
+export const VIEW_W = 960;
+export const VIEW_H = 540;
+export const TILE = 24;
 
 export interface Rect {
   x: number;
@@ -14,9 +13,10 @@ export interface Rect {
   h: number;
 }
 
+/** Bildschirmposition der Mitte des Raumrasters. */
 const CENTERS: Record<Side, { x: number; y: number }> = {
-  player: { x: 178, y: 154 },
-  enemy: { x: 488, y: 150 },
+  player: { x: 288, y: 252 },
+  enemy: { x: 736, y: 250 },
 };
 
 export function shipSize(def: ShipDef): { cols: number; rows: number } {
@@ -61,35 +61,58 @@ export function roomAt(side: Side, def: ShipDef, px: number, py: number): RoomDe
   return null;
 }
 
+/** Umriss aller Rumpfteile in Pixeln, relativ zum Raumraster (Bug nach rechts). */
+export function artBounds(art: ShipArt): { minX: number; minY: number; maxX: number; maxY: number } {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const part of art.parts) {
+    for (const [x, y] of part.pts) {
+      const ys = part.mirror ? [y, 2 * art.axisY - y] : [y];
+      minX = Math.min(minX, x * TILE);
+      maxX = Math.max(maxX, x * TILE);
+      for (const v of ys) {
+        minY = Math.min(minY, v * TILE);
+        maxY = Math.max(maxY, v * TILE);
+      }
+    }
+  }
+  return { minX: Math.floor(minX), minY: Math.floor(minY), maxX: Math.ceil(maxX), maxY: Math.ceil(maxY) };
+}
+
+/** Bildschirmposition eines Punkts, der in Pixeln relativ zum Raumraster angegeben ist. */
+export function localToScreen(side: Side, def: ShipDef, lx: number, ly: number): { x: number; y: number } {
+  const origin = shipOrigin(side, def);
+  const { cols } = shipSize(def);
+  return { x: origin.x + (side === 'enemy' ? cols * TILE - lx : lx), y: origin.y + ly };
+}
+
 export function shieldEllipse(side: Side, def: ShipDef) {
-  const { cols, rows } = shipSize(def);
+  const b = artBounds(SHIP_ART[def.id]);
+  const a = localToScreen(side, def, b.minX, b.minY);
+  const c = localToScreen(side, def, b.maxX, b.maxY);
   return {
-    cx: CENTERS[side].x,
-    cy: CENTERS[side].y,
-    rx: (cols * TILE) / 2 + 30,
-    ry: (rows * TILE) / 2 + 24,
+    cx: Math.round((a.x + c.x) / 2),
+    cy: Math.round((a.y + c.y) / 2),
+    rx: Math.round((Math.abs(c.x - a.x) / 2) * 1.06 + 10),
+    ry: Math.round((Math.abs(c.y - a.y) / 2) * 1.1 + 10),
   };
 }
 
-/** Position eines Geschützturms relativ zum Schiff (Bug nach rechts). */
+/** Position eines Geschützturms relativ zum Raumraster (Bug nach rechts). */
 export function weaponMount(def: ShipDef, index: number): { x: number; y: number } {
   const room = def.rooms.find((r) => r.system === 'weapons') ?? def.rooms[0];
   const { rows } = shipSize(def);
   const lower = room.y + room.h / 2 > rows / 2;
   return {
-    x: room.x * TILE + 4 + index * 13,
-    y: lower ? (room.y + room.h) * TILE + 1 : room.y * TILE - 6,
+    x: room.x * TILE + 5 + index * 21,
+    y: lower ? (room.y + room.h) * TILE + 2 : room.y * TILE - 9,
   };
 }
 
 /** Bildschirmposition der Mündung: von hier starten die Schüsse. */
 export function weaponMuzzle(side: Side, def: ShipDef, index: number): { x: number; y: number } {
   const mount = weaponMount(def, index);
-  const origin = shipOrigin(side, def);
-  const { cols } = shipSize(def);
-  const localX = mount.x + 14;
-  return {
-    x: origin.x + (side === 'enemy' ? cols * TILE - localX : localX),
-    y: origin.y + mount.y + 2,
-  };
+  return localToScreen(side, def, mount.x + 23, mount.y + 3);
 }

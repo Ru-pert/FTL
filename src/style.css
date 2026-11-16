@@ -17,11 +17,11 @@ body {
   background: #03050b;
 }
 
-/* Die Bühne hat immer 640×360 logische Pixel und wird ganzzahlig vergrößert. */
+/* Die Bühne hat immer 960×540 logische Pixel und wird auf die Fenstergröße vergrößert. */
 #stage {
   position: absolute;
-  width: 640px;
-  height: 360px;
+  width: 960px;
+  height: 540px;
   transform-origin: 0 0;
   overflow: hidden;
   font-family: 'VT323', monospace;
@@ -34,7 +34,10 @@ body {
 
 #view {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  width: 960px;
+  height: 540px;
   image-rendering: pixelated;
 }
 
@@ -45,8 +48,23 @@ body {
 #hud,
 #floats {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
   pointer-events: none;
+}
+
+/* Die Bedienoberfläche ist für 640×360 gebaut und wird um die Hälfte vergrößert. */
+#hud {
+  width: 640px;
+  height: 360px;
+  transform: scale(1.5);
+  transform-origin: 0 0;
+}
+
+#floats {
+  width: 960px;
+  height: 540px;
+  font-size: 24px;
 }
 
 .click {
@@ -257,9 +275,9 @@ body {
 .pause {
   position: absolute;
   left: 50%;
-  bottom: 70px;
-  width: 600px;
-  margin-left: -300px;
+  top: 4px;
+  width: 232px;
+  margin-left: -116px;
   white-space: nowrap;
   padding: 6px 8px 7px;
   box-sizing: border-box;
