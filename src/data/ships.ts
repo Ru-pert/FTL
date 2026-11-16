@@ -30,6 +30,7 @@ export const SHIPS: Record<string, ShipDef> = {
     systems: { shields: 2, weapons: 2, engines: 1 },
     weapons: ['impulslaser', 'impulslaser'],
     torpedoes: 0,
+    repairFactor: 0.4,
     rooms: [
       { id: 0, x: 0, y: 1, w: 2, h: 2, system: 'engines' },
       { id: 1, x: 2, y: 0, w: 2, h: 2 },

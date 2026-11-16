@@ -80,8 +80,16 @@ describe('Kampf', () => {
     s.enemy.weapons.forEach((w) => (w.powered = false));
     s.enemy.systems.weapons.level = 0;
     s.enemy.systems.weapons.power = 0;
-    run(s, 20);
+    run(s, 25);
     expect(s.player.systems.engines.damage).toBe(0);
+  });
+
+  it('der Gegner repariert deutlich langsamer als der Spieler', () => {
+    const s = newBattle();
+    s.enemy.systems.shields.damage = 1;
+    s.enemy.systems.shields.power = 0;
+    run(s, 20);
+    expect(s.enemy.systems.shields.damage).toBe(1);
   });
 
   it('endet mit Sieg, wenn die gegnerische Hülle auf null fällt', () => {

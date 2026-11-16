@@ -24,6 +24,8 @@ export interface ShipDef {
   systems: Record<SystemId, number>;
   weapons: string[];
   torpedoes: number;
+  /** Reparaturtempo relativ zum Normalwert (Standard 1). */
+  repairFactor?: number;
 }
 
 export interface WeaponDef {

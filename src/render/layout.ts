@@ -4,6 +4,8 @@ import type { RoomDef, ShipDef, Side } from '../sim/types';
 export const VIEW_W = 640;
 export const VIEW_H = 360;
 export const TILE = 16;
+/** Abstand der Außenhülle von den Räumen in Pixeln. */
+export const HULL_MARGIN = 7;
 
 export interface Rect {
   x: number;
@@ -66,5 +68,28 @@ export function shieldEllipse(side: Side, def: ShipDef) {
     cy: CENTERS[side].y,
     rx: (cols * TILE) / 2 + 30,
     ry: (rows * TILE) / 2 + 24,
+  };
+}
+
+/** Position eines Geschützturms relativ zum Schiff (Bug nach rechts). */
+export function weaponMount(def: ShipDef, index: number): { x: number; y: number } {
+  const room = def.rooms.find((r) => r.system === 'weapons') ?? def.rooms[0];
+  const { rows } = shipSize(def);
+  const lower = room.y + room.h / 2 > rows / 2;
+  return {
+    x: room.x * TILE + 4 + index * 13,
+    y: lower ? (room.y + room.h) * TILE + 1 : room.y * TILE - 6,
+  };
+}
+
+/** Bildschirmposition der Mündung: von hier starten die Schüsse. */
+export function weaponMuzzle(side: Side, def: ShipDef, index: number): { x: number; y: number } {
+  const mount = weaponMount(def, index);
+  const origin = shipOrigin(side, def);
+  const { cols } = shipSize(def);
+  const localX = mount.x + 14;
+  return {
+    x: origin.x + (side === 'enemy' ? cols * TILE - localX : localX),
+    y: origin.y + mount.y + 2,
   };
 }

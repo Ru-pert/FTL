@@ -18,8 +18,10 @@ export const SYSTEM_ORDER: SystemId[] = ['shields', 'weapons', 'engines'];
 
 /** Sekunden, bis eine Schildschicht nachgeladen ist. */
 const SHIELD_RECHARGE = 2.5;
-/** Reparierte Balken pro Sekunde ohne freie Energie; jede freie Energie addiert denselben Wert. */
-const REPAIR_BASE = 0.06;
+/** Reparierte Balken pro Sekunde ohne freie Energie. */
+const REPAIR_BASE = 0.05;
+/** Zusätzlicher Anteil je freier Reaktorenergie. */
+const REPAIR_FREE_BONUS = 0.5;
 const EVASION_PER_POWER = 0.05;
 /** Anteil der Flugstrecke, an dem Ausweichen und Schild geprüft werden. */
 export const CHECK_AT = 0.8;
@@ -217,7 +219,8 @@ function updateShip(state: BattleState, side: Side): void {
   const target = repairTarget(ship);
   if (target) {
     const sys = ship.systems[target];
-    sys.repair += REPAIR_BASE * (1 + freePower(ship)) * DT;
+    const factor = SHIPS[ship.defId].repairFactor ?? 1;
+    sys.repair += REPAIR_BASE * factor * (1 + REPAIR_FREE_BONUS * freePower(ship)) * DT;
     if (sys.repair >= 1) {
       sys.damage--;
       sys.repair = 0;
