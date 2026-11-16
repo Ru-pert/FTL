@@ -1,0 +1,340 @@
+:root {
+  --text: #cfd8ea;
+  --dim: #7c88a6;
+  --panel: rgba(10, 14, 28, 0.9);
+  --line: #2b3554;
+  --ok: #6ee06e;
+  --warn: #ff6b5d;
+  --hot: #ffd75e;
+  --shield: #5ecbff;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #03050b;
+}
+
+/* Die Bühne hat immer 640×360 logische Pixel und wird ganzzahlig vergrößert. */
+#stage {
+  position: absolute;
+  width: 640px;
+  height: 360px;
+  transform-origin: 0 0;
+  overflow: hidden;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  line-height: 14px;
+  color: var(--text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#view {
+  position: absolute;
+  inset: 0;
+  image-rendering: pixelated;
+}
+
+#stage.targeting #view {
+  cursor: crosshair;
+}
+
+#hud,
+#floats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.click {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.dim {
+  color: var(--dim);
+}
+.ok {
+  color: var(--ok);
+}
+.warn {
+  color: var(--warn);
+}
+.hot {
+  color: var(--hot);
+}
+
+/* Schiffsanzeigen oben */
+.shipinfo {
+  position: absolute;
+  top: 6px;
+  width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.shipinfo.player {
+  left: 8px;
+}
+.shipinfo.enemy {
+  right: 8px;
+}
+.shipinfo .name {
+  font-size: 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.shipinfo.enemy .name {
+  color: #ff9a8a;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lbl {
+  width: 38px;
+  color: var(--dim);
+}
+.num {
+  width: 36px;
+  text-align: right;
+}
+
+.bar {
+  flex: 1;
+  height: 6px;
+  background: #151b30;
+  outline: 1px solid var(--line);
+}
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+.bar.mid i {
+  background: var(--hot);
+}
+.bar.low i {
+  background: var(--warn);
+}
+.bar.charge i {
+  background: var(--hot);
+}
+.bar.rep {
+  flex: none;
+  height: 4px;
+  margin-top: 5px;
+}
+.bar.rep i {
+  background: #ffb347;
+}
+
+/* Energiebalken */
+.pips {
+  display: flex;
+  gap: 2px;
+}
+.pip {
+  width: 8px;
+  height: 6px;
+  box-sizing: border-box;
+}
+.pip.on,
+.pip.free {
+  background: var(--ok);
+}
+.pip.off {
+  border: 1px solid #3f7a4a;
+}
+.pip.used {
+  border: 1px solid #39425e;
+}
+.pip.dmg {
+  background: var(--warn);
+}
+.pip.shield {
+  background: var(--shield);
+}
+
+/* Leiste unten */
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 66px;
+  box-sizing: border-box;
+  padding: 7px 8px 0;
+  display: flex;
+  gap: 8px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+.reactor,
+.sys,
+.weapon {
+  box-sizing: border-box;
+  height: 52px;
+  padding: 5px 6px;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  background: #0d1326;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.reactor {
+  width: 76px;
+}
+.systems {
+  display: flex;
+  gap: 4px;
+}
+.sys {
+  width: 74px;
+}
+.sys.click:hover,
+.weapon:hover,
+.button:hover {
+  border-color: #6f82b8;
+  background: #131b36;
+}
+.sysname {
+  letter-spacing: 0.5px;
+}
+.hint {
+  color: var(--dim);
+}
+.weapons {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.weapon {
+  width: 150px;
+}
+.weapon:not(.powered) .wname {
+  color: var(--dim);
+}
+.weapon.selected {
+  border-color: var(--hot);
+}
+.weapon .bar {
+  flex: none;
+}
+.wname {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.swatch {
+  width: 6px;
+  height: 6px;
+}
+.key {
+  color: var(--dim);
+}
+.wfoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Meldungen und Fenster */
+.message {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 72px;
+  text-align: center;
+  color: var(--warn);
+}
+.pause {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  width: 600px;
+  margin-left: -300px;
+  white-space: nowrap;
+  padding: 6px 8px 7px;
+  box-sizing: border-box;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--dim);
+  text-align: center;
+}
+.pause b {
+  color: var(--text);
+  font-weight: normal;
+}
+.title {
+  font-size: 32px;
+  line-height: 24px;
+  letter-spacing: 3px;
+}
+.pause .title {
+  font-size: 16px;
+  line-height: 14px;
+  color: var(--hot);
+  animation: blink 1.2s steps(2) infinite;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 5, 11, 0.6);
+}
+.dialog {
+  padding: 16px 28px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.button {
+  padding: 6px 14px;
+  border: 1px solid #6f82b8;
+  background: #0d1326;
+  color: var(--text);
+}
+
+.float {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  text-shadow: 1px 1px 0 #000;
+  animation: rise 0.9s linear forwards;
+}
+.float.good {
+  color: var(--hot);
+}
+.float.bad {
+  color: var(--warn);
+}
+.float.miss {
+  color: var(--dim);
+}
+
+@keyframes rise {
+  to {
+    margin-top: -16px;
+    opacity: 0;
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
