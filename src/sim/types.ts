@@ -17,6 +17,8 @@ export interface RoomDef {
 export interface ShipDef {
   id: string;
   name: string;
+  /** Aussehen eines anderen Schiffs verwenden (für stärkere Varianten). */
+  art?: string;
   maxHull: number;
   reactor: number;
   rooms: RoomDef[];
@@ -70,6 +72,21 @@ export interface ShipState {
   shieldLayers: number;
   shieldCharge: number;
   torpedoes: number;
+  repairFactor: number;
+  shieldRechargeFactor: number;
+}
+
+/** Ausstattung, mit der ein Schiff in den Kampf geht. Fehlende Werte kommen aus den Schiffsdaten. */
+export interface Loadout {
+  defId: string;
+  hull?: number;
+  maxHull?: number;
+  reactor?: number;
+  systems?: Partial<Record<SystemId, number>>;
+  weapons?: string[];
+  torpedoes?: number;
+  repairFactor?: number;
+  shieldRechargeFactor?: number;
 }
 
 export interface Projectile {

@@ -51,26 +51,34 @@ bestehenden Titels: Name, Fraktionen, Schiffe, Grafik und Texte sind eigene.
 - Die Bedienoberfläche ist für 640×360 gebaut und wird per CSS um 1,5 vergrößert.
 - Schrift: VT323. Text gehört in die HTML-Oberfläche, nicht ins Canvas.
 
-## Spielregeln (Stand Meilenstein 1)
+## Spielregeln
 
 - Systeme: Schilde (2 Energie je Schicht), Waffen (Energie über einzelne Waffen),
   Antrieb (5 % Ausweichen je Energie).
 - Noch keine Crew: Beschädigte Systeme reparieren sich langsam selbst, freie
   Reaktorenergie beschleunigt das. Das Kachelraster ist für die spätere Crew ausgelegt.
+- Durchlauf (`src/sim/run.ts`): fünf Kämpfe in fester Reihenfolge. Hülle und Torpedos
+  bleiben erhalten, nach jedem Sieg eine von drei Belohnungen. Kristalle sind die
+  Währung; bei einer Niederlage behält man die Hälfte.
+- Homebase (`src/data/modules.ts`, `src/meta/profile.ts`): sechs Module mit Stufen,
+  bezahlt mit Kristallen. Sie ändern die Startausrüstung (`Loadout`) des Spielerschiffs.
+  Die Station (`src/render/station.ts`) zeigt jede Stufe sichtbar.
+- Zwei Spielstände: Der Durchlauf lebt nur im Speicher (ein Neuladen bricht ihn ab),
+  das Profil liegt in `localStorage` und lässt sich als Datei sichern und laden.
+- Schwierigkeit (Simulation mit einfachem Testspieler): Ohne Ausbau scheitert man am
+  Endgegner, mit halbem Ausbau gewinnt man klar. Die ersten vier Gegner sind eher leicht.
 
 ## Meilensteine
 
-1. Kampf: ein Schiff gegen einen Gegner (läuft)
-2. Kleiner Durchlauf (Kette von Kämpfen) mit Homebase
+1. Kampf: ein Schiff gegen einen Gegner (fertig)
+2. Kleiner Durchlauf (Kette von Kämpfen) mit Homebase (spielbar, Feinschliff offen)
 3. Sternenkarte und Textereignisse
 4. Crew
 5. Inhalte, Balancing, Sound, schönere Grafik
 
-## Homebase (geplant)
+## Offene Wünsche und Ideen
 
-- Sichtbare Raumstation in Pixel-Art, die mit jedem Modul wächst.
-- Ausbau bringt dauerhafte Boni, Powerups und bessere Startausrüstung.
-- Eigene Währung, im Durchlauf gesammelt, bei Niederlage teilweise behalten.
-- Zwei getrennte Spielstände: Durchlauf (endet) und Profil (dauerhaft, im Browser
-  gespeichert, mit Export und Import als Datei).
-- Gegner werden pro Sektor stärker, damit die Boni das Spiel nicht zu leicht machen.
+- Powerups als einmalige Verbrauchsgegenstände für den nächsten Durchlauf (vom Nutzer
+  gewünscht, noch nicht gebaut).
+- Gegner pro Sektor stärker machen, sobald es Sektoren gibt.
+- Name der Währung ("Kristalle") und Spieltitel sind Platzhalter.

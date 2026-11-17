@@ -356,3 +356,112 @@ body {
     opacity: 0.35;
   }
 }
+
+/* Zeile zum Durchlauf oben in der Mitte */
+.runline {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+/* Fenster mit mehreren Knöpfen */
+.dialog {
+  max-width: 420px;
+  text-align: center;
+}
+.buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.buttons .button {
+  line-height: 16px;
+}
+.button.disabled {
+  border-color: var(--line);
+  color: var(--dim);
+}
+
+/* Heimatbasis */
+.basetitle {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.crystals {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8ff0ff;
+}
+.gem {
+  width: 8px;
+  height: 8px;
+  background: #5ee6ff;
+  transform: rotate(45deg);
+  outline: 1px solid #c9f6ff;
+}
+.modules {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mod {
+  box-sizing: border-box;
+  height: 55px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  background: rgba(13, 19, 38, 0.92);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+}
+.modhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mod .button {
+  padding: 0 6px;
+  line-height: 15px;
+  text-align: center;
+}
+.modfull {
+  line-height: 17px;
+  text-align: center;
+}
+.basefoot {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.footrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.button.big {
+  padding: 8px 16px;
+  border-color: var(--hot);
+  color: var(--hot);
+}
+.basemsg {
+  bottom: 60px;
+  right: 212px;
+}

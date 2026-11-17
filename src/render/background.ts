@@ -58,7 +58,11 @@ const NEBULA_TEAL: Ramp = ['#05070f', '#07121f', '#091e30', '#0d2e42', '#124354'
 const PLANET: Ramp = ['#150d1c', '#2e182c', '#55293a', '#84433f', '#b56a45', '#dc9a54', '#f5d28d'].map(rgb);
 const MOON: Ramp = ['#10131f', '#252b40', '#454f6c', '#7480a0', '#aab4cc', '#dde3f0'].map(rgb);
 
+const backgrounds = new Map<number, HTMLCanvasElement>();
+
 export function buildBackground(seed: number): HTMLCanvasElement {
+  const cached = backgrounds.get(seed);
+  if (cached) return cached;
   const canvas = document.createElement('canvas');
   canvas.width = VIEW_W;
   canvas.height = VIEW_H;
@@ -109,6 +113,7 @@ export function buildBackground(seed: number): HTMLCanvasElement {
   sphere(put, 476, -14, 104, seed, PLANET, true);
   sphere(put, 612, 58, 11, seed + 9, MOON, false);
   ctx.putImageData(image, 0, 0);
+  backgrounds.set(seed, canvas);
   return canvas;
 }
 

@@ -1,5 +1,5 @@
 // Wo die Schiffe auf dem Bildschirm stehen. Wird von Darstellung und Eingabe gemeinsam genutzt.
-import { SHIP_ART, type ShipArt } from '../data/shipArt';
+import { artFor, type ShipArt } from '../data/shipArt';
 import type { RoomDef, ShipDef, Side } from '../sim/types';
 
 export const VIEW_W = 960;
@@ -89,7 +89,7 @@ export function localToScreen(side: Side, def: ShipDef, lx: number, ly: number):
 }
 
 export function shieldEllipse(side: Side, def: ShipDef) {
-  const b = artBounds(SHIP_ART[def.id]);
+  const b = artBounds(artFor(def));
   const a = localToScreen(side, def, b.minX, b.minY);
   const c = localToScreen(side, def, b.maxX, b.maxY);
   return {
@@ -106,7 +106,7 @@ export function weaponMount(def: ShipDef, index: number): { x: number; y: number
   const { rows } = shipSize(def);
   const lower = room.y + room.h / 2 > rows / 2;
   return {
-    x: room.x * TILE + 5 + index * 21,
+    x: room.x * TILE + 5 + index * (def.weapons.length > 2 ? 15 : 21),
     y: lower ? (room.y + room.h) * TILE + 2 : room.y * TILE - 9,
   };
 }

@@ -1,5 +1,5 @@
 // Darstellung des Kampfs. Liest den Spielzustand nur, ändert ihn nie.
-import { SHIP_ART } from '../data/shipArt';
+import { artFor } from '../data/shipArt';
 import { SHIPS } from '../data/ships';
 import { WEAPONS } from '../data/weapons';
 import { capacity, DT, other } from '../sim/battle';
@@ -175,7 +175,7 @@ export class Renderer {
     const ctx = this.ctx;
     const ship = state[side];
     const def = SHIPS[ship.defId];
-    const art = SHIP_ART[def.id];
+    const art = artFor(def);
     const origin = shipOrigin(side, def);
     const { cols, rows } = shipSize(def);
     const sprite = this.sprites[side];
@@ -276,6 +276,8 @@ export class Renderer {
     for (const room of def.rooms) {
       if (!room.system) continue;
       const sys = ship.systems[room.system];
+      // Ein System mit Stufe 0 ist nicht eingebaut
+      if (sys.level <= 0) continue;
       const rect = roomRect(side, def, room);
       const cx = rect.x + rect.w / 2;
       const cy = rect.y + rect.h / 2 + 2;

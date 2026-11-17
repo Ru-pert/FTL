@@ -5,6 +5,7 @@ import { nextRandom } from './rng';
 import type {
   BattleState,
   Command,
+  Loadout,
   Projectile,
   ShipState,
   Side,
@@ -58,34 +59,38 @@ export function repairTarget(ship: ShipState): SystemId | null {
   return SYSTEM_ORDER.find((id) => ship.systems[id].damage > 0) ?? null;
 }
 
-function createShip(defId: string): ShipState {
-  const def = SHIPS[defId];
-  if (!def) throw new Error(`Unbekanntes Schiff: ${defId}`);
-  const sys = (level: number): SystemState => ({ level, power: 0, damage: 0, repair: 0 });
+function createShip(loadout: Loadout): ShipState {
+  const def = SHIPS[loadout.defId];
+  if (!def) throw new Error(`Unbekanntes Schiff: ${loadout.defId}`);
+  const sys = (id: SystemId): SystemState => ({
+    level: loadout.systems?.[id] ?? def.systems[id],
+    power: 0,
+    damage: 0,
+    repair: 0,
+  });
+  const maxHull = loadout.maxHull ?? def.maxHull;
   return {
-    defId,
-    hull: def.maxHull,
-    maxHull: def.maxHull,
-    reactor: def.reactor,
-    systems: {
-      shields: sys(def.systems.shields),
-      weapons: sys(def.systems.weapons),
-      engines: sys(def.systems.engines),
-    },
-    weapons: def.weapons.map((id) => ({ defId: id, powered: false, charge: 0, target: null })),
+    defId: def.id,
+    hull: Math.min(maxHull, loadout.hull ?? maxHull),
+    maxHull,
+    reactor: loadout.reactor ?? def.reactor,
+    systems: { shields: sys('shields'), weapons: sys('weapons'), engines: sys('engines') },
+    weapons: (loadout.weapons ?? def.weapons).map((id) => ({ defId: id, powered: false, charge: 0, target: null })),
     shieldLayers: 0,
     shieldCharge: 0,
-    torpedoes: def.torpedoes,
+    torpedoes: loadout.torpedoes ?? def.torpedoes,
+    repairFactor: loadout.repairFactor ?? def.repairFactor ?? 1,
+    shieldRechargeFactor: loadout.shieldRechargeFactor ?? 1,
   };
 }
 
-export function createBattle(seed: number, playerDefId: string, enemyDefId: string): BattleState {
+export function createBattle(seed: number, player: Loadout | string, enemyDefId: string): BattleState {
   const state: BattleState = {
     tick: 0,
     rng: seed | 0,
     outcome: 'ongoing',
-    player: createShip(playerDefId),
-    enemy: createShip(enemyDefId),
+    player: createShip(typeof player === 'string' ? { defId: player } : player),
+    enemy: createShip({ defId: enemyDefId }),
     projectiles: [],
     nextProjectileId: 1,
     events: [],
@@ -206,7 +211,7 @@ function updateShip(state: BattleState, side: Side): void {
   const maxLayers = maxShieldLayers(ship);
   if (ship.shieldLayers > maxLayers) ship.shieldLayers = maxLayers;
   if (ship.shieldLayers < maxLayers) {
-    ship.shieldCharge += DT;
+    ship.shieldCharge += DT * ship.shieldRechargeFactor;
     if (ship.shieldCharge >= SHIELD_RECHARGE) {
       ship.shieldLayers++;
       ship.shieldCharge = 0;
@@ -219,8 +224,7 @@ function updateShip(state: BattleState, side: Side): void {
   const target = repairTarget(ship);
   if (target) {
     const sys = ship.systems[target];
-    const factor = SHIPS[ship.defId].repairFactor ?? 1;
-    sys.repair += REPAIR_BASE * factor * (1 + REPAIR_FREE_BONUS * freePower(ship)) * DT;
+    sys.repair += REPAIR_BASE * ship.repairFactor * (1 + REPAIR_FREE_BONUS * freePower(ship)) * DT;
     if (sys.repair >= 1) {
       sys.damage--;
       sys.repair = 0;

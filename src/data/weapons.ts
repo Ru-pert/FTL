@@ -26,6 +26,18 @@ export const WEAPONS: Record<string, WeaponDef> = {
     usesTorpedo: false,
     flightTime: 0.9,
   },
+  drillingslaser: {
+    id: 'drillingslaser',
+    name: 'Drillingslaser',
+    kind: 'laser',
+    power: 2,
+    chargeTime: 12,
+    shots: 3,
+    damage: 1,
+    piercing: false,
+    usesTorpedo: false,
+    flightTime: 0.9,
+  },
   torpedo: {
     id: 'torpedo',
     name: 'Torpedowerfer',

@@ -285,4 +285,240 @@ export const SHIP_ART: Record<string, ShipArt> = {
     flame: ['#e0561e', '#ffae3d', '#fff3c4'],
     lights: [{ x: 1.55, y: -2.45, color: '#ff4040' }],
   },
+
+  // Rostwespe: Insektenkörper mit Stachel, vier durchscheinenden Flügeln und Beißzangen
+  rostwespe: {
+    axisY: 2,
+    ramps: {
+      hull: ['#1a0d08', '#3f2010', '#6b3516', '#9c5220', '#c9782e', '#f0b060'],
+      hull2: ['#0e1a1c', '#274045', '#3f666b', '#5e9296', '#8fc2c2', '#d0eeea'],
+      accent: ['#2a2208', '#6b5a16', '#9c8420', '#d9b82c', '#f2dc60', '#fff6b0'],
+      metal: METAL,
+      glass: ['#06200c', '#0f4a1c', '#1b8a34', '#3ad65a', '#8ff0a0', '#e0ffe6'],
+      bone: BONE,
+    },
+    parts: [
+      // Hinteres Flügelpaar
+      {
+        mat: 'hull2',
+        mirror: true,
+        pts: [
+          [2.6, -0.3],
+          [0.2, -1.7],
+          [-1.2, -1.3],
+          [-0.6, -0.7],
+          [1.2, -0.1],
+        ],
+      },
+      // Vorderes Flügelpaar
+      {
+        mat: 'hull2',
+        mirror: true,
+        panels: true,
+        pts: [
+          [4.0, -0.3],
+          [1.6, -2.9],
+          [0.0, -2.9],
+          [-0.3, -2.3],
+          [1.0, -1.5],
+          [2.4, -0.3],
+        ],
+      },
+      // Stachel
+      {
+        mat: 'bone',
+        pts: [
+          [-0.6, 1.7],
+          [-2.9, 2.0],
+          [-0.6, 2.3],
+        ],
+      },
+      // Seitentriebwerke
+      {
+        mat: 'metal',
+        mirror: true,
+        pts: [
+          [-1.3, 0.85],
+          [0.1, 0.65],
+          [0.4, 1.35],
+          [-1.3, 1.4],
+        ],
+      },
+      // Körper: Hinterleib, Brust, Kopf
+      {
+        mat: 'hull',
+        mirror: true,
+        panels: true,
+        pts: [
+          [-0.9, 2],
+          [-0.7, 1.15],
+          [0.2, 0.55],
+          [1.7, 0.55],
+          [1.9, -0.5],
+          [4.2, -0.5],
+          [4.5, 0.5],
+          [6.3, 0.6],
+          [7.0, 1.2],
+          [7.3, 2],
+        ],
+      },
+      // Warnstreifen am Hinterleib
+      {
+        mat: 'accent',
+        pts: [
+          [-0.45, 1.25],
+          [-0.1, 0.95],
+          [-0.1, 3.05],
+          [-0.45, 2.75],
+        ],
+      },
+      // Facettenaugen
+      {
+        mat: 'glass',
+        mirror: true,
+        pts: [
+          [6.35, 0.85],
+          [6.95, 1.3],
+          [6.7, 1.75],
+          [6.25, 1.5],
+        ],
+      },
+      // Beißzangen
+      {
+        mat: 'bone',
+        mirror: true,
+        pts: [
+          [7.0, 1.45],
+          [8.1, 1.55],
+          [7.8, 1.95],
+          [7.15, 1.9],
+        ],
+      },
+    ],
+    deco: { 3: 'cockpit' },
+    engines: [
+      { x: -1.3, y: 1.12, size: 6 },
+      { x: -1.3, y: 2.88, size: 6 },
+    ],
+    flame: ['#c9a72c', '#f2dc60', '#ffffff'],
+    lights: [{ x: 0.1, y: -2.8, color: '#ffd040' }],
+  },
+
+  // Eisenrochen: breite Schwingen, langer Schwanz, zwei Hörner am Bug
+  eisenrochen: {
+    axisY: 3,
+    ramps: {
+      hull: ['#0c0f18', '#252b3c', '#3b445c', '#5a6682', '#8591ad', '#c0c9de'],
+      hull2: ['#0e0c18', '#231f3a', '#39325c', '#544a82', '#7d72ad', '#b8b0dc'],
+      accent: ['#2a0818', '#6e1440', '#a82060', '#e03a88', '#ff80b8', '#ffd0e6'],
+      metal: METAL,
+      glass: ['#071a30', '#0f3557', '#1b5f93', '#3ad0e0', '#8ff0ff', '#e6fdff'],
+      bone: BONE,
+    },
+    parts: [
+      // Schwanz
+      {
+        mat: 'metal',
+        pts: [
+          [-0.4, 2.7],
+          [-2.9, 2.93],
+          [-2.9, 3.07],
+          [-0.4, 3.3],
+        ],
+      },
+      // Schwingen
+      {
+        mat: 'hull2',
+        mirror: true,
+        panels: true,
+        pts: [
+          [8.7, 1.4],
+          [5.2, -2.2],
+          [3.3, -2.5],
+          [0.4, -0.4],
+          [0.6, 1.6],
+        ],
+      },
+      // Leuchtband auf den Schwingen
+      {
+        mat: 'accent',
+        mirror: true,
+        pts: [
+          [6.3, -0.75],
+          [5.6, -1.5],
+          [2.9, -1.3],
+          [3.3, -0.6],
+        ],
+      },
+      // Triebwerke
+      {
+        mat: 'metal',
+        mirror: true,
+        pts: [
+          [-1.3, 1.85],
+          [-0.3, 1.75],
+          [-0.3, 2.75],
+          [-1.3, 2.65],
+        ],
+      },
+      // Hörner
+      {
+        mat: 'hull2',
+        mirror: true,
+        pts: [
+          [10.5, 1.85],
+          [12.3, 1.2],
+          [12.5, 1.65],
+          [11.0, 2.55],
+        ],
+      },
+      // Körper
+      {
+        mat: 'hull',
+        mirror: true,
+        panels: true,
+        pts: [
+          [-0.5, 3],
+          [-0.5, 1.6],
+          [1.7, 1.4],
+          [1.8, 0.5],
+          [3.7, 0.4],
+          [3.8, -0.5],
+          [6.2, -0.5],
+          [6.4, 0.5],
+          [8.3, 0.6],
+          [8.6, 1.5],
+          [10.4, 1.7],
+          [11.0, 2.3],
+          [11.1, 3],
+        ],
+      },
+      // Augen
+      {
+        mat: 'glass',
+        mirror: true,
+        pts: [
+          [10.25, 2.0],
+          [10.85, 2.25],
+          [10.85, 2.65],
+          [10.25, 2.6],
+        ],
+      },
+    ],
+    deco: { 1: 'crates', 2: 'bunks', 4: 'corridor', 6: 'consoles', 7: 'medbay', 8: 'cockpit' },
+    engines: [
+      { x: -1.3, y: 2.25, size: 9 },
+      { x: -1.3, y: 3.75, size: 9 },
+    ],
+    flame: ['#a82060', '#ff80b8', '#ffffff'],
+    lights: [
+      { x: 3.4, y: -2.4, color: '#ff40a0' },
+      { x: 3.4, y: 8.4, color: '#ff40a0' },
+    ],
+  },
 };
+
+/** Aussehen eines Schiffs; Varianten können das Aussehen eines anderen Schiffs übernehmen. */
+export function artFor(def: { id: string; art?: string }): ShipArt {
+  return SHIP_ART[def.art ?? def.id];
+}

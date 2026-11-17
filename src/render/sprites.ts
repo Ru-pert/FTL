@@ -1,7 +1,7 @@
 // Pixelgrafik, die per Code erzeugt wird: Rumpf aus den Formdaten in data/shipArt.ts,
 // dazu das Innenleben der Räume. Später lassen sich die Schiffsbilder durch gezeichnete
 // PNG-Dateien ersetzen, ohne die übrige Darstellung zu ändern.
-import { SHIP_ART, type Deco } from '../data/shipArt';
+import { artFor, type Deco } from '../data/shipArt';
 import type { RoomDef, ShipDef, SystemId } from '../sim/types';
 import { bayer, hash, rgb } from './background';
 import { artBounds, TILE, weaponMount } from './layout';
@@ -154,9 +154,34 @@ function shadePart(
   }
 }
 
+/** Zeichnet ein schattiertes Vieleck in einen Bildpuffer (auch für die Raumstation genutzt). */
+export function paintPolygon(
+  buf: Uint8ClampedArray,
+  occupied: Uint8Array,
+  W: number,
+  H: number,
+  pts: [number, number][],
+  ramp: string[],
+  opts: { panels?: boolean; glass?: boolean; seed?: number } = {},
+): void {
+  const mask = new Uint8Array(W * H);
+  fillPolygon(mask, W, H, pts);
+  shadePart(buf, occupied, W, H, mask, ramp.map(rgb), {
+    panels: !!opts.panels,
+    glass: !!opts.glass,
+    seed: opts.seed ?? 1,
+    patches: [],
+  });
+}
+
+const spriteCache = new Map<string, ShipSprite>();
+
 /** Zeichnet ein Schiff in ein eigenes Bild. flip = Bug zeigt nach links (Gegner). */
 export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
-  const art = SHIP_ART[def.id];
+  const key = `${def.id}:${flip}`;
+  const cached = spriteCache.get(key);
+  if (cached) return cached;
+  const art = artFor(def);
   const b = artBounds(art);
   const W = b.maxX - b.minX + PAD * 2;
   const H = b.maxY - b.minY + PAD * 2;
@@ -206,7 +231,9 @@ export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
   } else {
     ctx.drawImage(interior, 0, 0);
   }
-  return { canvas, ox, oy };
+  const sprite = { canvas, ox, oy };
+  spriteCache.set(key, sprite);
+  return sprite;
 }
 
 const FLOORS: Record<SystemId | Deco, [string, string]> = {
@@ -222,7 +249,7 @@ const FLOORS: Record<SystemId | Deco, [string, string]> = {
 };
 
 function drawInterior(ctx: CanvasRenderingContext2D, def: ShipDef, ox: number, oy: number): void {
-  const art = SHIP_ART[def.id];
+  const art = artFor(def);
   const R = (x: number, y: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color;
     ctx.fillRect(x, y, w, h);
