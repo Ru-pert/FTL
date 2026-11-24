@@ -46,6 +46,10 @@ function fillPolygon(mask: Uint8Array, W: number, H: number, pts: [number, numbe
 interface ShadeOptions {
   panels: boolean;
   glass: boolean;
+  /** Waagerechte Rillen wie bei Kühlrippen. */
+  stripes?: boolean;
+  /** Breite der abgeschrägten Kante in Pixeln. */
+  bevel?: number;
   seed: number;
   /** Abweichende Farben für einzelne Platten (Flickwerk). */
   patches: Color[][];
@@ -62,6 +66,7 @@ function shadePart(
   opts: ShadeOptions,
 ): void {
   const at = (x: number, y: number) => (x >= 0 && y >= 0 && x < W && y < H ? mask[y * W + x] : 0);
+  const bevel = opts.bevel ?? BEVEL;
 
   // Schlagschatten auf darunterliegende Teile
   for (let y = 0; y < H; y++) {
@@ -91,7 +96,7 @@ function shadePart(
       }
     }
   }
-  for (let d = 2; frontier.length && d <= BEVEL; d++) {
+  for (let d = 2; frontier.length && d <= bevel; d++) {
     const next: number[] = [];
     for (const i of frontier) {
       const x = i % W;
@@ -106,14 +111,14 @@ function shadePart(
   }
   const height = (x: number, y: number) => {
     if (!at(x, y)) return 0;
-    return dist[y * W + x] || BEVEL + 1;
+    return dist[y * W + x] || bevel + 1;
   };
 
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
       if (!mask[i]) continue;
-      const d = dist[i] || BEVEL + 1;
+      const d = dist[i] || bevel + 1;
       let colors = ramp;
       let tone: number;
       if (d === 1) {
@@ -124,7 +129,10 @@ function shadePart(
         let t = 3 + (gx * 0.5 + gy * 0.75) * 0.85;
         if (opts.glass) {
           t += (x + y) % 13 < 3 ? 1.3 : 0;
-        } else if (opts.panels && d > BEVEL) {
+        } else if (opts.stripes && d > 1) {
+          const period = bevel > 3 ? 4 : 3;
+          t += y % period === 0 ? -1.3 : y % period === 1 ? 0.7 : 0;
+        } else if (opts.panels && d > bevel) {
           // Panzerplatten: Reihen mit versetzten Fugen
           const row = Math.floor(y / 14);
           const cellW = 18 + Math.floor(hash(row, 0, opts.seed) * 14);
@@ -162,13 +170,15 @@ export function paintPolygon(
   H: number,
   pts: [number, number][],
   ramp: string[],
-  opts: { panels?: boolean; glass?: boolean; seed?: number } = {},
+  opts: { panels?: boolean; glass?: boolean; stripes?: boolean; bevel?: number; seed?: number } = {},
 ): void {
   const mask = new Uint8Array(W * H);
   fillPolygon(mask, W, H, pts);
   shadePart(buf, occupied, W, H, mask, ramp.map(rgb), {
     panels: !!opts.panels,
     glass: !!opts.glass,
+    stripes: !!opts.stripes,
+    bevel: opts.bevel,
     seed: opts.seed ?? 1,
     patches: [],
   });
@@ -210,6 +220,7 @@ export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
       shadePart(image.data, occupied, W, H, mask, art.ramps[part.mat].map(rgb), {
         panels: !!part.panels,
         glass: part.mat === 'glass',
+        stripes: !!part.stripes,
         seed: index * 31 + 5,
         patches: part.mat === 'hull' ? patches : [],
       });
@@ -230,6 +241,59 @@ export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
     ctx.restore();
   } else {
     ctx.drawImage(interior, 0, 0);
+  }
+  const sprite = { canvas, ox, oy };
+  spriteCache.set(key, sprite);
+  return sprite;
+}
+
+/** Verkleinerte Außenansicht eines Schiffs (ohne Innenleben), z. B. angedockt an der Station. */
+export function buildShipMiniature(def: ShipDef, tile: number): ShipSprite {
+  const key = `mini:${def.id}:${tile}`;
+  const cached = spriteCache.get(key);
+  if (cached) return cached;
+  const art = artFor(def);
+  const f = tile / TILE;
+  const b = artBounds(art);
+  const pad = 4;
+  const W = Math.ceil((b.maxX - b.minX) * f) + pad * 2;
+  const H = Math.ceil((b.maxY - b.minY) * f) + pad * 2;
+  const ox = pad - b.minX * f;
+  const oy = pad - b.minY * f;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+  const image = ctx.createImageData(W, H);
+  const occupied = new Uint8Array(W * H);
+  art.parts.forEach((part, index) => {
+    for (const mirrored of part.mirror ? [false, true] : [false]) {
+      const pts = part.pts.map(([x, y]): [number, number] => [
+        x * tile + ox,
+        (mirrored ? 2 * art.axisY - y : y) * tile + oy,
+      ]);
+      const mask = new Uint8Array(W * H);
+      fillPolygon(mask, W, H, pts);
+      shadePart(image.data, occupied, W, H, mask, art.ramps[part.mat].map(rgb), {
+        panels: false,
+        glass: part.mat === 'glass',
+        stripes: !!part.stripes,
+        bevel: 2,
+        seed: index * 31 + 5,
+        patches: [],
+      });
+    }
+  });
+  ctx.putImageData(image, 0, 0);
+  // Beleuchtete Fenster an der Stelle der Räume
+  for (const room of def.rooms) {
+    const x = Math.round(ox + (room.x + room.w / 2) * tile);
+    const y = Math.round(oy + (room.y + room.h / 2) * tile);
+    ctx.fillStyle = '#1a2236';
+    ctx.fillRect(x - 3, y - 1, 6, 3);
+    ctx.fillStyle = room.system ? '#8ff0ff' : '#ffe9a0';
+    ctx.fillRect(x - 2, y, 1, 1);
+    ctx.fillRect(x + 1, y, 1, 1);
   }
   const sprite = { canvas, ox, oy };
   spriteCache.set(key, sprite);

@@ -11,6 +11,18 @@ export interface HullPart {
   mirror?: boolean;
   /** Panzerplatten mit Fugen und Nieten. */
   panels?: boolean;
+  /** Waagerechte Rillen wie bei Kühlrippen. */
+  stripes?: boolean;
+}
+
+/** Punkte einer Ellipse (oder eines Ellipsenbogens) als Vieleck, Winkel im Bogenmaß. */
+export function ellipse(cx: number, cy: number, rx: number, ry: number, from = 0, to = Math.PI * 2, steps = 24): [number, number][] {
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = from + ((to - from) * i) / steps;
+    pts.push([cx + Math.cos(t) * rx, cy + Math.sin(t) * ry]);
+  }
+  return pts;
 }
 
 export interface ShipArt {
@@ -33,130 +45,172 @@ const METAL = ['#0d1018', '#272c3a', '#3d4458', '#5b647d', '#8791aa', '#c5cde0']
 const BONE = ['#2a2620', '#6e6654', '#a39a80', '#d1c9ae', '#ece6d0', '#ffffff'];
 
 export const SHIP_ART: Record<string, ShipArt> = {
-  // Eisvogel: schlanker Vogel mit langem Schnabel, gepfeilten Flügeln und zwei Triebwerksgondeln
+  // Eisvogel: Forschungs- und Eisbrecherschiff. Gedrungener Panzerrumpf, Bug aus Eiskristallen,
+  // zwei große Triebwerksglocken, senkrechte Kühlrippen, Antennenschüssel oben, Frachtcontainer unten.
   eisvogel: {
     axisY: 3,
     ramps: {
-      hull: ['#10182a', '#2b3a57', '#42587c', '#6283a8', '#93b4d1', '#d6e9f5'],
-      hull2: ['#0c1f2b', '#134a5e', '#1b6e85', '#2a97ab', '#5cc4cf', '#b5eef0'],
+      hull: ['#121a2c', '#3a4a66', '#5d7393', '#8ea6c3', '#c4d6e8', '#f2f8ff'],
+      hull2: ['#0c1424', '#1e2d48', '#2d4468', '#41618e', '#6488b4', '#a9c6e6'],
       accent: ['#3a1608', '#8c3a12', '#c85a1a', '#f08a2c', '#ffb968', '#ffe6b8'],
       metal: METAL,
-      glass: ['#071a30', '#0f3557', '#1b5f93', '#3a9fe0', '#8fd6ff', '#e6f9ff'],
+      glass: ['#06203a', '#0e4a70', '#1f7fb0', '#46bde0', '#9ee8fa', '#f0fdff'],
       bone: BONE,
     },
     parts: [
-      // Flügel
+      // Kühlrippen: senkrechte Platten oben und unten am Heck
+      {
+        mat: 'metal',
+        mirror: true,
+        stripes: true,
+        pts: [
+          [0.45, 1.4],
+          [1.75, 1.4],
+          [1.95, -2.35],
+          [0.25, -2.35],
+        ],
+      },
+      // Haltestreben der Kühlrippen
       {
         mat: 'hull2',
         mirror: true,
+        pts: [
+          [0.2, -2.5],
+          [2.0, -2.5],
+          [2.0, -2.2],
+          [0.2, -2.2],
+        ],
+      },
+      // Antennenmast und Schüssel (nur oben)
+      {
+        mat: 'metal',
+        pts: [
+          [7.88, 0.8],
+          [8.12, 0.8],
+          [8.12, -1.0],
+          [7.88, -1.0],
+        ],
+      },
+      {
+        mat: 'hull',
+        pts: [...ellipse(8, -1.55, 1.25, 0.62, 0, Math.PI, 16), ...ellipse(8, -1.55, 1.05, 0.18, Math.PI, 0, 10)],
+      },
+      {
+        mat: 'accent',
+        pts: [
+          [7.95, -1.45],
+          [8.05, -1.45],
+          [8.05, -2.25],
+          [7.95, -2.25],
+        ],
+      },
+      // Frachtcontainer (nur unten)
+      {
+        mat: 'accent',
+        pts: [
+          [6.75, 5.1],
+          [7.85, 5.1],
+          [7.85, 6.15],
+          [6.75, 6.15],
+        ],
+      },
+      {
+        mat: 'hull2',
         panels: true,
         pts: [
-          [6.5, -0.2],
-          [3.4, -2.45],
-          [0.9, -2.95],
-          [0.5, -2.4],
-          [1.9, -1.3],
-          [2.4, 0.7],
-          [3.9, 0.9],
+          [7.95, 5.1],
+          [9.15, 5.1],
+          [9.15, 6.0],
+          [7.95, 6.0],
         ],
       },
-      // Farbband auf dem Flügel
-      {
-        mat: 'accent',
-        mirror: true,
-        pts: [
-          [4.9, -1.25],
-          [4.2, -1.8],
-          [3.0, -0.4],
-          [3.7, 0.0],
-        ],
-      },
-      // Gondel an der Flügelspitze
+      // Triebwerksglocken
       {
         mat: 'metal',
         mirror: true,
         pts: [
-          [3.9, -2.72],
-          [3.5, -3.0],
-          [0.6, -3.15],
-          [0.3, -2.8],
-          [0.6, -2.5],
-          [3.4, -2.4],
+          [0.1, 2.0],
+          [0.1, 2.62],
+          [-1.7, 2.97],
+          [-1.7, 1.63],
         ],
       },
-      // Leitwerk
-      {
-        mat: 'accent',
-        mirror: true,
-        pts: [
-          [1.7, 1.5],
-          [-0.3, 0.1],
-          [-1.0, 0.25],
-          [0.1, 1.75],
-        ],
-      },
-      // Triebwerksgondeln
-      {
-        mat: 'metal',
-        mirror: true,
-        pts: [
-          [-1.5, 1.8],
-          [0.3, 1.6],
-          [1.1, 1.9],
-          [1.1, 2.75],
-          [-1.5, 2.65],
-        ],
-      },
-      // Rumpf mit Schnabel
+      // Panzerrumpf
       {
         mat: 'hull',
         mirror: true,
         panels: true,
         pts: [
-          [-0.5, 3],
-          [-0.5, 1.75],
-          [1.6, 1.55],
-          [1.75, 0.6],
-          [3.65, 0.5],
-          [3.8, -0.45],
-          [6.25, -0.45],
-          [6.6, 0.55],
-          [9.3, 0.6],
-          [9.65, 1.55],
-          [11.3, 1.75],
-          [12.7, 2.45],
-          [14.0, 3],
+          [-0.35, 3],
+          [-0.35, 1.72],
+          [0.2, 1.5],
+          [1.65, 1.5],
+          [1.78, 0.62],
+          [3.55, 0.55],
+          [3.75, -0.38],
+          [6.35, -0.38],
+          [6.55, 0.6],
+          [9.2, 0.62],
+          [9.45, 1.55],
+          [11.2, 1.62],
+          [11.85, 2.2],
+          [12.05, 3],
         ],
       },
-      // Schnabelspitze
+      // Panzerkragen in Signalfarbe
       {
         mat: 'accent',
+        mirror: true,
         pts: [
-          [12.6, 2.42],
-          [14.0, 3],
-          [12.6, 3.58],
+          [3.45, -0.6],
+          [3.9, -0.6],
+          [3.9, 0.75],
+          [3.45, 0.75],
         ],
       },
-      // Cockpitglas
+      {
+        mat: 'accent',
+        mirror: true,
+        pts: [
+          [6.2, -0.6],
+          [6.65, -0.6],
+          [6.65, 0.75],
+          [6.2, 0.75],
+        ],
+      },
+      // Eiskristall-Bug: großer Mittelkristall und zwei schräge Splitter
+      {
+        mat: 'glass',
+        mirror: true,
+        pts: [
+          [11.25, 2.25],
+          [11.95, 1.55],
+          [13.05, 1.1],
+          [12.45, 2.0],
+          [11.75, 2.55],
+        ],
+      },
       {
         mat: 'glass',
         pts: [
-          [11.25, 2.25],
-          [12.35, 2.62],
-          [12.35, 3.38],
-          [11.25, 3.75],
+          [11.55, 2.5],
+          [12.65, 2.25],
+          [14.1, 3.0],
+          [12.65, 3.75],
+          [11.55, 3.5],
         ],
       },
     ],
     deco: { 1: 'bunks', 2: 'crates', 5: 'corridor', 6: 'consoles', 7: 'medbay', 8: 'cockpit' },
     engines: [
-      { x: -1.5, y: 2.22, size: 8 },
-      { x: -1.5, y: 3.78, size: 8 },
+      { x: -1.7, y: 2.3, size: 14 },
+      { x: -1.7, y: 3.7, size: 14 },
     ],
     flame: ['#2a7de0', '#7fd4ff', '#ffffff'],
     lights: [
-      { x: 0.55, y: -2.85, color: '#ff5050' },
-      { x: 0.55, y: 8.85, color: '#50ff70' },
+      { x: 8.0, y: -2.3, color: '#ff5050' },
+      { x: 1.1, y: -2.35, color: '#5ea0ff' },
+      { x: 1.1, y: 8.35, color: '#50ff70' },
     ],
   },
 
