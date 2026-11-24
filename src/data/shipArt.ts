@@ -1,7 +1,8 @@
 // Aussehen der Schiffe als Daten: Rumpfteile, Farben, Einrichtung der Räume.
 // Koordinaten in Kacheln, relativ zum Raumraster; das Schiff zeigt nach rechts.
 
-export type Material = 'hull' | 'hull2' | 'accent' | 'metal' | 'glass' | 'bone';
+/** energy = leuchtende Teile (Energieleitungen, Kerne) mit Lichtschein um sich herum. */
+export type Material = 'hull' | 'hull2' | 'accent' | 'metal' | 'glass' | 'bone' | 'energy';
 export type Deco = 'bunks' | 'crates' | 'consoles' | 'medbay' | 'corridor' | 'cockpit';
 
 export interface HullPart {
@@ -13,6 +14,22 @@ export interface HullPart {
   panels?: boolean;
   /** Waagerechte Rillen wie bei Kühlrippen. */
   stripes?: boolean;
+}
+
+/** Kristallsplitter: Fußpunkt, Länge, Richtung in Grad (0 = nach vorn, -90 = nach oben), Breite. */
+export function shard(x: number, y: number, len: number, deg: number, width: number): [number, number][] {
+  const a = (deg * Math.PI) / 180;
+  const dx = Math.cos(a);
+  const dy = Math.sin(a);
+  const nx = -dy * width * 0.5;
+  const ny = dx * width * 0.5;
+  return [
+    [x + nx, y + ny],
+    [x + dx * len * 0.62 + nx * 1.1, y + dy * len * 0.62 + ny * 1.1],
+    [x + dx * len, y + dy * len],
+    [x + dx * len * 0.62 - nx * 1.1, y + dy * len * 0.62 - ny * 1.1],
+    [x - nx, y - ny],
+  ];
 }
 
 /** Punkte einer Ellipse (oder eines Ellipsenbogens) als Vieleck, Winkel im Bogenmaß. */
@@ -31,7 +48,7 @@ export interface ShipArt {
   /** Zusammengeflickter Look: Platten in wechselnden Farben. */
   scrappy?: boolean;
   /** Je Material sechs Farben von dunkel nach hell: Kontur, Schatten, dunkel, mittel, hell, Glanz. */
-  ramps: Record<Material, string[]>;
+  ramps: Record<Exclude<Material, 'energy'>, string[]> & { energy?: string[] };
   /** Rumpfteile von hinten nach vorn (spätere liegen über früheren). */
   parts: HullPart[];
   /** Einrichtung der Räume ohne System, nach Raum-ID. */
@@ -568,6 +585,169 @@ export const SHIP_ART: Record<string, ShipArt> = {
     lights: [
       { x: 3.4, y: -2.4, color: '#ff40a0' },
       { x: 3.4, y: 8.4, color: '#ff40a0' },
+    ],
+  },
+
+  // ---- Entwürfe für das Spielerschiff (Auswahl über ?entwurf=a, b oder c) ----
+
+  // Entwurf A, Speerspitze: dunkler Kampfrumpf, Gabelbug mit Energieschiene, wuchtiger Antriebsblock
+  entwurf_a: {
+    axisY: 3,
+    ramps: {
+      hull: ['#07090f', '#1a1f2c', '#2c3446', '#414c66', '#66748f', '#a7b3cc'],
+      hull2: ['#05060b', '#11151f', '#1b2130', '#283046', '#3b4662', '#687696'],
+      accent: ['#04222a', '#0a5866', '#0f95a8', '#22d3e6', '#8af2ff', '#e8feff'],
+      metal: METAL,
+      glass: ['#04222a', '#0a5866', '#0f95a8', '#22d3e6', '#8af2ff', '#e8feff'],
+      bone: BONE,
+      energy: ['#0a4a5a', '#18a6c0', '#3ee6ff', '#8af6ff', '#d8feff', '#ffffff'],
+    },
+    parts: [
+      // Heckstacheln
+      { mat: 'hull2', mirror: true, panels: true, pts: [[-1.9, 0.7], [-0.5, 0.7], [-1.5, -0.8], [-2.1, -0.85]] },
+      // Antriebsblock
+      { mat: 'hull2', mirror: true, panels: true, pts: [[-2.4, 3], [-2.4, 1.0], [-1.7, 0.5], [0.5, 0.5], [0.9, 1.2], [0.9, 3]] },
+      // Düsen
+      { mat: 'metal', mirror: true, pts: [[-2.3, 0.95], [-2.3, 1.75], [-3.2, 2.0], [-3.2, 0.7]] },
+      { mat: 'metal', pts: [[-2.3, 2.55], [-2.3, 3.45], [-3.35, 3.75], [-3.35, 2.25]] },
+      // Brückenturm oben
+      { mat: 'hull', panels: true, pts: [[3.85, -0.3], [4.3, -1.55], [7.3, -1.55], [8.25, -0.3]] },
+      { mat: 'energy', pts: [[4.6, -1.15], [7.25, -1.15], [7.25, -0.97], [4.6, -0.97]] },
+      // Kiel unten
+      { mat: 'hull2', panels: true, pts: [[3.6, 6.3], [8.4, 6.3], [7.5, 7.15], [4.3, 7.15]] },
+      // Gabelzinken
+      { mat: 'hull', mirror: true, panels: true, pts: [[9.0, 0.95], [11.0, 0.8], [15.9, 1.9], [11.5, 2.38], [9.4, 2.15]] },
+      { mat: 'accent', mirror: true, pts: [[14.3, 1.62], [15.9, 1.9], [14.4, 2.0]] },
+      // Rumpf
+      {
+        mat: 'hull',
+        mirror: true,
+        panels: true,
+        pts: [[-0.35, 3], [-0.35, 1.72], [0.2, 1.5], [1.65, 1.5], [1.78, 0.62], [3.55, 0.55], [3.75, -0.38], [6.35, -0.38], [6.55, 0.6], [9.2, 0.62], [9.45, 1.55], [11.2, 1.62], [11.85, 2.2], [12.05, 3]],
+      },
+      // Panzerschuppen
+      { mat: 'hull2', mirror: true, panels: true, pts: [[6.4, 0.28], [9.3, 0.38], [9.62, 1.0], [6.62, 0.92]] },
+      { mat: 'hull2', mirror: true, panels: true, pts: [[1.7, 0.42], [3.6, 0.36], [3.8, 0.85], [1.9, 0.9]] },
+      // Leuchtstreifen und Energieschiene zwischen den Zinken
+      { mat: 'energy', mirror: true, pts: [[6.7, 0.52], [9.15, 0.6], [9.15, 0.72], [6.7, 0.66]] },
+      { mat: 'energy', mirror: true, pts: [[-1.6, 0.8], [0.4, 0.8], [0.4, 0.94], [-1.6, 0.94]] },
+      { mat: 'energy', pts: [[11.9, 2.9], [15.3, 2.92], [15.3, 3.08], [11.9, 3.1]] },
+      { mat: 'energy', pts: ellipse(12.15, 3, 0.32, 0.32, 0, Math.PI * 2, 12) },
+    ],
+    deco: { 1: 'bunks', 2: 'crates', 5: 'corridor', 6: 'consoles', 7: 'medbay', 8: 'cockpit' },
+    engines: [
+      { x: -3.2, y: 1.35, size: 14 },
+      { x: -3.35, y: 3, size: 18 },
+      { x: -3.2, y: 4.65, size: 14 },
+    ],
+    flame: ['#1a8ad6', '#7ff0ff', '#ffffff'],
+    lights: [
+      { x: 5.8, y: -1.55, color: '#ff4040' },
+      { x: 15.7, y: 1.9, color: '#3ee6ff' },
+      { x: 15.7, y: 4.1, color: '#3ee6ff' },
+    ],
+  },
+
+  // Entwurf B, Kristallkrone: perlweißer Rumpf, auf dem Kristalle wie eine Krone wachsen
+  entwurf_b: {
+    axisY: 3,
+    ramps: {
+      hull: ['#141a26', '#4a5670', '#7a8aa6', '#aebdd4', '#dbe5f2', '#ffffff'],
+      hull2: ['#0c0a1e', '#1e1a44', '#2e2a66', '#433d8c', '#6460b4', '#a19ee0'],
+      accent: ['#2a0c3a', '#5a1e7a', '#8a34b8', '#b45ee6', '#d9a2ff', '#f6e6ff'],
+      metal: METAL,
+      glass: ['#0a1440', '#1a3480', '#2e62c0', '#4aa6f0', '#a6e4ff', '#f0fbff'],
+      bone: BONE,
+      energy: ['#3a1466', '#7a36c8', '#b06aff', '#d8a8ff', '#f2e0ff', '#ffffff'],
+    },
+    parts: [
+      // Kristalle hinter dem Rumpf (Krone oben, kleinere unten)
+      { mat: 'glass', pts: shard(4.3, 0.2, 2.6, -112, 0.75) },
+      { mat: 'glass', pts: shard(5.2, 0.0, 3.4, -98, 0.95) },
+      { mat: 'glass', pts: shard(6.1, 0.2, 2.4, -78, 0.7) },
+      { mat: 'glass', pts: shard(3.2, 0.7, 1.6, -130, 0.55) },
+      { mat: 'glass', pts: shard(6.9, 0.7, 1.5, -55, 0.5) },
+      { mat: 'glass', pts: shard(5.0, 5.9, 2.0, 105, 0.7) },
+      { mat: 'glass', pts: shard(6.0, 5.8, 1.4, 80, 0.5) },
+      { mat: 'glass', pts: shard(8.3, 5.2, 1.3, 120, 0.45) },
+      // Antriebsgehäuse
+      { mat: 'hull2', mirror: true, panels: true, pts: [[-1.7, 3], [-1.7, 1.75], [-1.2, 1.15], [0.4, 1.0], [0.7, 3]] },
+      { mat: 'metal', mirror: true, pts: [[-1.6, 1.85], [-1.6, 2.65], [-2.4, 2.9], [-2.4, 1.6]] },
+      // Rumpf, weich gerundet
+      {
+        mat: 'hull',
+        mirror: true,
+        panels: true,
+        pts: [[-0.35, 3], [-0.35, 1.72], [0.2, 1.5], [1.65, 1.45], [1.9, 0.62], [3.5, 0.5], [3.9, -0.38], [6.2, -0.38], [6.6, 0.55], [9.2, 0.6], [9.5, 1.5], [11.1, 1.65], [11.9, 2.3], [12.15, 3]],
+      },
+      // Violette Zierbänder
+      { mat: 'accent', mirror: true, pts: [[3.45, -0.55], [3.85, -0.55], [3.85, 0.75], [3.45, 0.75]] },
+      { mat: 'accent', mirror: true, pts: [[9.05, 0.45], [9.4, 0.45], [9.4, 1.65], [9.05, 1.65]] },
+      // Leuchtender Kristallkern oben auf dem Rumpf
+      { mat: 'energy', pts: ellipse(5.15, -0.15, 0.45, 0.28, 0, Math.PI * 2, 16) },
+      // Kristallbug: großer Speer und zwei Seitensplitter
+      { mat: 'glass', mirror: true, pts: shard(11.4, 2.3, 2.6, -24, 0.55) },
+      { mat: 'glass', pts: shard(11.8, 3, 4.0, 0, 1.15) },
+      { mat: 'energy', pts: [[12.0, 2.94], [14.8, 2.97], [14.8, 3.03], [12.0, 3.06]] },
+    ],
+    deco: { 1: 'bunks', 2: 'crates', 5: 'corridor', 6: 'consoles', 7: 'medbay', 8: 'cockpit' },
+    engines: [
+      { x: -2.4, y: 2.25, size: 14 },
+      { x: -2.4, y: 3.75, size: 14 },
+    ],
+    flame: ['#7a36c8', '#d8a8ff', '#ffffff'],
+    lights: [
+      { x: 5.2, y: -3.4, color: '#b06aff' },
+      { x: 4.8, y: 7.9, color: '#b06aff' },
+    ],
+  },
+
+  // Entwurf C, Ringantrieb: Rumpf führt durch einen großen leuchtenden Antriebsring, Hammerkopf-Brücke vorn
+  entwurf_c: {
+    axisY: 3,
+    ramps: {
+      hull: ['#160d08', '#40261a', '#6a4028', '#9a6236', '#cc9256', '#f6d8a6'],
+      hull2: ['#061a1c', '#0e3a3e', '#16585c', '#22807e', '#4cb0a8', '#a8e8de'],
+      accent: ['#2a1c04', '#6b4a0a', '#a87818', '#e0aa2c', '#f6d466', '#fff4c0'],
+      metal: METAL,
+      glass: ['#04201e', '#0a4e4a', '#12807a', '#28c0b4', '#8af0e4', '#e8fffc'],
+      bone: BONE,
+      energy: ['#0a4a44', '#18a898', '#3ef0dc', '#9afff2', '#dafffb', '#ffffff'],
+    },
+    parts: [
+      // Hintere Hälfte des Antriebsrings
+      { mat: 'accent', panels: true, pts: [...ellipse(-1.5, 3, 0.95, 4.7, Math.PI / 2, Math.PI * 1.5, 24), ...ellipse(-1.5, 3, 0.55, 4.0, Math.PI * 1.5, Math.PI / 2, 24)] },
+      { mat: 'energy', pts: [...ellipse(-1.5, 3, 0.58, 4.05, Math.PI / 2, Math.PI * 1.5, 24), ...ellipse(-1.5, 3, 0.48, 3.9, Math.PI * 1.5, Math.PI / 2, 24)] },
+      // Rückgrat durch den Ring mit Düse
+      { mat: 'metal', mirror: true, pts: [[-2.9, 2.45], [0.2, 2.35], [0.2, 3], [-2.9, 3]] },
+      { mat: 'metal', mirror: true, pts: [[-2.8, 2.5], [-2.8, 2.8], [-3.5, 2.95], [-3.5, 2.35]] },
+      // Halter zwischen Rumpf und Ring
+      { mat: 'hull2', mirror: true, pts: [[-1.2, 1.2], [0.4, 1.55], [0.4, 1.9], [-1.2, 1.6]] },
+      // Sensorkuppel oben
+      { mat: 'metal', pts: [[6.85, -0.4], [7.15, -0.4], [7.15, -1.7], [6.85, -1.7]] },
+      { mat: 'glass', pts: [...ellipse(5.4, -0.3, 1.05, 0.62, Math.PI, Math.PI * 2, 16), [6.45, -0.25], [4.35, -0.25]] },
+      // Rumpf
+      {
+        mat: 'hull',
+        mirror: true,
+        panels: true,
+        pts: [[-0.35, 3], [-0.35, 1.72], [0.2, 1.5], [1.65, 1.5], [1.78, 0.62], [3.55, 0.55], [3.75, -0.38], [6.35, -0.38], [6.55, 0.6], [9.2, 0.62], [9.45, 1.55], [11.0, 1.62], [11.0, 3]],
+      },
+      // Hammerkopf-Brücke
+      { mat: 'hull2', mirror: true, panels: true, pts: [[10.9, 3], [10.9, 0.55], [11.4, 0.05], [12.5, 0.05], [12.95, 0.6], [12.95, 3]] },
+      { mat: 'glass', mirror: true, pts: [[12.6, 0.7], [12.85, 0.75], [12.85, 2.6], [12.6, 2.6]] },
+      { mat: 'energy', mirror: true, pts: [[11.3, 0.2], [12.4, 0.2], [12.4, 0.32], [11.3, 0.32]] },
+      // Vordere Hälfte des Antriebsrings (liegt vor dem Rumpf)
+      { mat: 'accent', panels: true, pts: [...ellipse(-1.5, 3, 0.95, 4.7, -Math.PI / 2, Math.PI / 2, 24), ...ellipse(-1.5, 3, 0.55, 4.0, Math.PI / 2, -Math.PI / 2, 24)] },
+      { mat: 'energy', pts: [...ellipse(-1.5, 3, 0.58, 4.05, -Math.PI / 2, Math.PI / 2, 24), ...ellipse(-1.5, 3, 0.48, 3.9, Math.PI / 2, -Math.PI / 2, 24)] },
+    ],
+    deco: { 1: 'bunks', 2: 'crates', 5: 'corridor', 6: 'consoles', 7: 'medbay', 8: 'cockpit' },
+    engines: [{ x: -3.5, y: 3, size: 12 }],
+    flame: ['#18a898', '#9afff2', '#ffffff'],
+    lights: [
+      { x: 7.0, y: -1.7, color: '#ff4040' },
+      { x: 12.0, y: 0.05, color: '#3ef0dc' },
+      { x: 12.0, y: 5.95, color: '#3ef0dc' },
     ],
   },
 };

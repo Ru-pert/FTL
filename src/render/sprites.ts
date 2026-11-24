@@ -1,7 +1,7 @@
 // Pixelgrafik, die per Code erzeugt wird: Rumpf aus den Formdaten in data/shipArt.ts,
 // dazu das Innenleben der Räume. Später lassen sich die Schiffsbilder durch gezeichnete
 // PNG-Dateien ersetzen, ohne die übrige Darstellung zu ändern.
-import { artFor, type Deco } from '../data/shipArt';
+import { artFor, type Deco, type Material, type ShipArt } from '../data/shipArt';
 import type { RoomDef, ShipDef, SystemId } from '../sim/types';
 import { bayer, hash, rgb } from './background';
 import { artBounds, TILE, weaponMount } from './layout';
@@ -146,6 +146,8 @@ function shadePart(
           }
           if (lx === 0 || ly === 0) t = 2;
           else if (lx === 1 || ly === 1) t = 3.7;
+          else if (cell > 0.55 && cell < 0.64 && lx > 3 && lx < cellW - 3 && ly > 3 && ly < 11) t = ly % 2 ? 1.7 : 3.1;
+          else if (cell > 0.94 && lx > 3 && lx < 7 && ly > 5 && ly < 9) t = 1.5;
           else if ((lx === 3 || lx === cellW - 2) && (ly === 3 || ly === 12)) t = 1.6;
           else t = 3 + (cell - 0.5) * 1.3;
         }
@@ -184,6 +186,52 @@ export function paintPolygon(
   });
 }
 
+function rampOf(art: ShipArt, mat: Material): string[] {
+  return mat === 'energy' ? (art.ramps.energy ?? art.ramps.glass) : art.ramps[mat];
+}
+
+/** Lichtschein um leuchtende Teile: nach außen schwächer werdend, im Pixelraster gestreut. */
+function drawGlow(ctx: CanvasRenderingContext2D, mask: Uint8Array, W: number, H: number, color: string): void {
+  if (!mask.some((v) => v)) return;
+  const reach = 5;
+  const dist = new Uint8Array(W * H);
+  let frontier: number[] = [];
+  for (let i = 0; i < mask.length; i++) if (mask[i]) frontier.push(i);
+  for (let d = 1; d <= reach && frontier.length; d++) {
+    const next: number[] = [];
+    for (const i of frontier) {
+      const x = i % W;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) {
+        if (j >= 0 && j < W * H && !mask[j] && !dist[j]) {
+          dist[j] = d;
+          next.push(j);
+        }
+      }
+    }
+    frontier = next;
+  }
+  const [r, g, b] = rgb(color);
+  const glow = ctx.createImageData(W, H);
+  for (let i = 0; i < dist.length; i++) {
+    const d = dist[i];
+    if (!d) continue;
+    const strength = 1 - (d - 1) / reach;
+    if (bayer(i % W, Math.floor(i / W)) > strength * 0.9 + 0.1) continue;
+    glow.data[i * 4] = r;
+    glow.data[i * 4 + 1] = g;
+    glow.data[i * 4 + 2] = b;
+    glow.data[i * 4 + 3] = Math.round(70 + strength * 90);
+  }
+  const layer = document.createElement('canvas');
+  layer.width = W;
+  layer.height = H;
+  layer.getContext('2d')!.putImageData(glow, 0, 0);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(layer, 0, 0);
+  ctx.restore();
+}
+
 const spriteCache = new Map<string, ShipSprite>();
 
 /** Zeichnet ein Schiff in ein eigenes Bild. flip = Bug zeigt nach links (Gegner). */
@@ -208,6 +256,7 @@ export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
   const image = ctx.createImageData(W, H);
   const occupied = new Uint8Array(W * H);
   const patches = art.scrappy ? [art.ramps.hull2, art.ramps.accent, RUST].map((r) => r.map(rgb)) : [];
+  const glowMask = new Uint8Array(W * H);
   art.parts.forEach((part, index) => {
     for (const mirrored of part.mirror ? [false, true] : [false]) {
       const pts = part.pts.map(([x, y]): [number, number] => {
@@ -217,16 +266,19 @@ export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
       });
       const mask = new Uint8Array(W * H);
       fillPolygon(mask, W, H, pts);
-      shadePart(image.data, occupied, W, H, mask, art.ramps[part.mat].map(rgb), {
+      shadePart(image.data, occupied, W, H, mask, rampOf(art, part.mat).map(rgb), {
         panels: !!part.panels,
-        glass: part.mat === 'glass',
+        glass: part.mat === 'glass' || part.mat === 'energy',
         stripes: !!part.stripes,
+        bevel: part.mat === 'energy' ? 1 : undefined,
         seed: index * 31 + 5,
         patches: part.mat === 'hull' ? patches : [],
       });
+      if (part.mat === 'energy') for (let i = 0; i < mask.length; i++) glowMask[i] |= mask[i];
     }
   });
   ctx.putImageData(image, 0, 0);
+  drawGlow(ctx, glowMask, W, H, rampOf(art, 'energy')[3]);
 
   // Innenleben (immer ungespiegelt gezeichnet, dann passend aufgesetzt)
   const interior = document.createElement('canvas');
@@ -274,7 +326,7 @@ export function buildShipMiniature(def: ShipDef, tile: number): ShipSprite {
       ]);
       const mask = new Uint8Array(W * H);
       fillPolygon(mask, W, H, pts);
-      shadePart(image.data, occupied, W, H, mask, art.ramps[part.mat].map(rgb), {
+      shadePart(image.data, occupied, W, H, mask, rampOf(art, part.mat).map(rgb), {
         panels: false,
         glass: part.mat === 'glass',
         stripes: !!part.stripes,

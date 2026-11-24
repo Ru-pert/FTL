@@ -2,6 +2,7 @@
 import '@fontsource/vt323/400.css';
 import './style.css';
 import type { ModuleId } from './data/modules';
+import { SHIP_ART } from './data/shipArt';
 import { SHIPS } from './data/ships';
 import { buyModule, loadoutFromProfile, type Profile } from './meta/profile';
 import { exportProfile, importProfile, loadProfile, saveProfile } from './meta/storage';
@@ -28,6 +29,10 @@ const stage = document.getElementById('stage') as HTMLDivElement;
 const canvas = document.getElementById('view') as HTMLCanvasElement;
 const hudRoot = document.getElementById('hud') as HTMLDivElement;
 const floatRoot = document.getElementById('floats') as HTMLDivElement;
+
+// Schiffsentwurf zum Ansehen wählen: Adresse mit ?entwurf=a, b oder c öffnen
+const draft = new URLSearchParams(location.search).get('entwurf');
+if (draft && SHIP_ART[`entwurf_${draft}`]) SHIP_ART.eisvogel = SHIP_ART[`entwurf_${draft}`];
 
 let profile: Profile = loadProfile();
 let screen: 'base' | 'battle' = 'base';
