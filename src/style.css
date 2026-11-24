@@ -465,3 +465,22 @@ body {
   bottom: 60px;
   right: 212px;
 }
+
+/* Auswahl des eigenen Schiffs */
+.designs {
+  position: absolute;
+  left: 10px;
+  top: 70px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.designs .button {
+  padding: 2px 6px;
+  line-height: 13px;
+  text-align: center;
+}
+.designs .button.chosen {
+  border-color: var(--hot);
+  color: var(--hot);
+}

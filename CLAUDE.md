@@ -48,9 +48,14 @@ bestehenden Titels: Name, Fraktionen, Schiffe, Grafik und Texte sind eigene.
   `src/render/sprites.ts` macht daraus die Pixelgrafik (Kontur, Schattierung, Platten).
 - Jedes Schiff hat eine erkennbare Gestalt (Schrotthai = Hai, Rostwespe = Wespe,
   Eisenrochen = Rochen). Neue Schiffe ebenso entwerfen, nicht als Kasten um die Räume.
-- Das Spielerschiff Eisvogel soll wie ein Raumschiff aussehen, nicht wie ein Flugzeug
-  (Wunsch des Nutzers): keine Flügel, stattdessen Triebwerksglocken, Kühlrippen,
-  Antennenschüssel, Frachtcontainer und ein Bug aus Eiskristallen.
+- Spielerschiff: drei wählbare Entwürfe (`PLAYER_DESIGNS` in `src/data/ships.ts`),
+  Donnerkeil (Kanonenboot), Frostbrecher (Eisfrachter), Sonnenwind (Forschungsschiff).
+  Intern heißt das Schiff weiter `eisvogel`; Name und Aussehen kommen aus dem Entwurf,
+  der im Profil gespeichert ist. Wunsch des Nutzers: realistisch wirkende Raumschiffe,
+  nicht wie Flugzeuge, keine Fantasy-Optik. Mittel dafür: gedeckte Farben, Goldfolie,
+  Gitterträger, Kühlflächen, Warnstreifen, Kennzeichen, Gebrauchsspuren.
+- Geschütze sind sichtbar und drehen sich zum Ziel (`buildTurretSprite`, Drehpunkte in
+  `mounts` der Schiffsgrafik; ohne Angabe sitzen sie am Rand des Waffenraums).
 - Die Heimatbasis ist eine große Ringstation; das Schiff liegt klein am Dock, damit die
   Station groß wirkt (Wunsch des Nutzers).
 - Die Bedienoberfläche ist für 640×360 gebaut und wird per CSS um 1,5 vergrößert.

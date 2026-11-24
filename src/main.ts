@@ -2,8 +2,7 @@
 import '@fontsource/vt323/400.css';
 import './style.css';
 import type { ModuleId } from './data/modules';
-import { SHIP_ART } from './data/shipArt';
-import { SHIPS } from './data/ships';
+import { applyPlayerDesign, type DesignId, PLAYER_DESIGNS, SHIPS } from './data/ships';
 import { buyModule, loadoutFromProfile, type Profile } from './meta/profile';
 import { exportProfile, importProfile, loadProfile, saveProfile } from './meta/storage';
 import { applyCommand, createBattle, DT, step } from './sim/battle';
@@ -30,11 +29,8 @@ const canvas = document.getElementById('view') as HTMLCanvasElement;
 const hudRoot = document.getElementById('hud') as HTMLDivElement;
 const floatRoot = document.getElementById('floats') as HTMLDivElement;
 
-// Schiffsentwurf zum Ansehen wählen: Adresse mit ?entwurf=a, b oder c öffnen
-const draft = new URLSearchParams(location.search).get('entwurf');
-if (draft && SHIP_ART[`entwurf_${draft}`]) SHIP_ART.eisvogel = SHIP_ART[`entwurf_${draft}`];
-
 let profile: Profile = loadProfile();
+applyPlayerDesign(profile.design);
 let screen: 'base' | 'battle' = 'base';
 let run: RunState | null = null;
 let state: BattleState | null = null;
@@ -131,6 +127,16 @@ const hud = new Hud(hudRoot, floatRoot, (act, data, secondary) => {
       if (buyModule(profile, data.id as ModuleId)) saveProfile(profile);
       else say('Nicht genug Kristalle');
       break;
+    case 'design':
+      if (secondary) break;
+      {
+        // Zum nächsten Entwurf weiterschalten
+        const index = PLAYER_DESIGNS.findIndex((d) => d.id === profile.design);
+        profile.design = PLAYER_DESIGNS[(index + 1) % PLAYER_DESIGNS.length].id as DesignId;
+      }
+      applyPlayerDesign(profile.design);
+      saveProfile(profile);
+      break;
     case 'start':
       if (!secondary) beginRun();
       break;
@@ -142,6 +148,7 @@ const hud = new Hud(hudRoot, floatRoot, (act, data, secondary) => {
       void importProfile().then((loaded) => {
         if (loaded) {
           profile = loaded;
+          applyPlayerDesign(profile.design);
           saveProfile(profile);
           say('Spielstand geladen');
         } else {

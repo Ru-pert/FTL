@@ -1,6 +1,6 @@
 // Dauerhafter Fortschritt: Kristalle und Ausbaustufen der Homebase. Reine Daten und Regeln.
 import { MODULES, type ModuleId } from '../data/modules';
-import { SHIPS } from '../data/ships';
+import { type DesignId, PLAYER_DESIGNS, SHIPS } from '../data/ships';
 import type { Loadout } from '../sim/types';
 
 export interface Profile {
@@ -9,6 +9,8 @@ export interface Profile {
   modules: Record<ModuleId, number>;
   runs: number;
   wins: number;
+  /** Gewählter Entwurf für das eigene Schiff. */
+  design: DesignId;
 }
 
 export function newProfile(): Profile {
@@ -18,6 +20,7 @@ export function newProfile(): Profile {
     modules: { werft: 0, reaktor: 0, waffen: 0, schild: 0, antrieb: 0, dock: 0 },
     runs: 0,
     wins: 0,
+    design: 'donnerkeil',
   };
 }
 
@@ -31,6 +34,8 @@ export function parseProfile(data: unknown): Profile | null {
   profile.crystals = count(raw.crystals);
   profile.runs = count(raw.runs);
   profile.wins = count(raw.wins);
+  const design = PLAYER_DESIGNS.find((d) => d.id === raw.design);
+  if (design) profile.design = design.id;
   const modules = (raw.modules ?? {}) as Record<string, unknown>;
   for (const def of MODULES) profile.modules[def.id] = Math.min(def.costs.length, count(modules[def.id]));
   return profile;

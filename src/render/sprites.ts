@@ -4,7 +4,7 @@
 import { artFor, type Deco, type Material, type ShipArt } from '../data/shipArt';
 import type { RoomDef, ShipDef, SystemId } from '../sim/types';
 import { bayer, hash, rgb } from './background';
-import { artBounds, TILE, weaponMount } from './layout';
+import { artBounds, TILE } from './layout';
 
 export interface ShipSprite {
   canvas: HTMLCanvasElement;
@@ -50,6 +50,10 @@ interface ShadeOptions {
   stripes?: boolean;
   /** Breite der abgeschrägten Kante in Pixeln. */
   bevel?: number;
+  /** Besondere Oberfläche: Goldfolie, Warnstreifen oder Gitterträger. */
+  surface?: 'foil' | 'hazard' | 'truss';
+  /** Leichte Gebrauchsspuren (dunkle Flecken). */
+  weathered?: boolean;
   seed: number;
   /** Abweichende Farben für einzelne Platten (Flickwerk). */
   patches: Color[][];
@@ -121,8 +125,24 @@ function shadePart(
       const d = dist[i] || bevel + 1;
       let colors = ramp;
       let tone: number;
+      if (opts.surface === 'truss' && d > 2) {
+        // Gitter: nur Diagonalstreben, dazwischen bleibt es offen
+        const k = 10;
+        if ((x + y) % k !== 0 && (x - y + 4096) % k !== 0) continue;
+      }
       if (d === 1) {
         tone = 0;
+      } else if (opts.surface === 'hazard') {
+        const dark = Math.floor((x + y) / 5) % 2 === 0;
+        tone = dark ? 1 : d === 2 ? 5 : 4;
+        if (dark) colors = HAZARD_DARK;
+      } else if (opts.surface === 'foil') {
+        const crinkle = hash(x >> 1, y >> 1, opts.seed) - 0.5;
+        const gx0 = height(x + 1, y) - height(x - 1, y);
+        const gy0 = height(x, y + 1) - height(x, y - 1);
+        const t0 = 3 + (gx0 * 0.5 + gy0 * 0.75) * 0.6 + crinkle * 1.3;
+        const b0 = Math.floor(t0);
+        tone = Math.max(1, Math.min(5, b0 + (t0 - b0 > bayer(x, y) ? 1 : 0)));
       } else {
         const gx = height(x + 1, y) - height(x - 1, y);
         const gy = height(x, y + 1) - height(x, y - 1);
@@ -151,6 +171,7 @@ function shadePart(
           else if ((lx === 3 || lx === cellW - 2) && (ly === 3 || ly === 12)) t = 1.6;
           else t = 3 + (cell - 0.5) * 1.3;
         }
+        if (opts.weathered && d > bevel && hash(x >> 2, y >> 2, opts.seed + 7) > 0.8) t -= 0.55;
         const base = Math.floor(t);
         tone = Math.max(1, Math.min(5, base + (t - base > bayer(x, y) ? 1 : 0)));
       }
@@ -172,7 +193,7 @@ export function paintPolygon(
   H: number,
   pts: [number, number][],
   ramp: string[],
-  opts: { panels?: boolean; glass?: boolean; stripes?: boolean; bevel?: number; seed?: number } = {},
+  opts: { panels?: boolean; glass?: boolean; stripes?: boolean; bevel?: number; seed?: number; weathered?: boolean } = {},
 ): void {
   const mask = new Uint8Array(W * H);
   fillPolygon(mask, W, H, pts);
@@ -181,13 +202,65 @@ export function paintPolygon(
     glass: !!opts.glass,
     stripes: !!opts.stripes,
     bevel: opts.bevel,
+    weathered: opts.weathered,
     seed: opts.seed ?? 1,
     patches: [],
   });
 }
 
+const FOIL = ['#2a1a04', '#6a4a10', '#a8781e', '#d4a832', '#f0d470', '#fff4c0'];
+const HAZARD = ['#1a1406', '#5a4a10', '#a88a1a', '#d8b628', '#f2d64a', '#fff0a0'];
+const HAZARD_DARK: Color[] = ['#0a0a0c', '#16161a', '#1e1e24', '#26262e', '#30303a', '#3a3a46'].map(rgb);
+
 function rampOf(art: ShipArt, mat: Material): string[] {
-  return mat === 'energy' ? (art.ramps.energy ?? art.ramps.glass) : art.ramps[mat];
+  switch (mat) {
+    case 'energy':
+      return art.ramps.energy ?? art.ramps.glass;
+    case 'foil':
+      return art.ramps.foil ?? FOIL;
+    case 'hazard':
+      return art.ramps.hazard ?? HAZARD;
+    case 'truss':
+      return art.ramps.truss ?? art.ramps.metal;
+    default:
+      return art.ramps[mat];
+  }
+}
+
+function surfaceOf(mat: Material): ShadeOptions['surface'] {
+  return mat === 'foil' || mat === 'hazard' || mat === 'truss' ? mat : undefined;
+}
+
+/** Winzige Pixelschrift (3×5) für Kennzeichen auf dem Rumpf. */
+const GLYPHS: Record<string, string> = {
+  '0': '111101101101111',
+  '1': '010110010010111',
+  '2': '111001111100111',
+  '3': '111001111001111',
+  '4': '101101111001001',
+  '5': '111100111001111',
+  '6': '111100111101111',
+  '7': '111001010010010',
+  '8': '111101111101111',
+  '9': '111101111001111',
+  '-': '000000111000000',
+  B: '110101110101110',
+  D: '110101101101110',
+  F: '111100110100100',
+  K: '101101110101101',
+  S: '111100111001111',
+  W: '101101101111101',
+};
+
+function drawText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string): void {
+  ctx.fillStyle = color;
+  [...text].forEach((ch, i) => {
+    const glyph = GLYPHS[ch];
+    if (!glyph) return;
+    for (let k = 0; k < 15; k++) {
+      if (glyph[k] === '1') ctx.fillRect(Math.round(x + i * 4 + (k % 3)), Math.round(y + Math.floor(k / 3)), 1, 1);
+    }
+  });
 }
 
 /** Lichtschein um leuchtende Teile: nach außen schwächer werdend, im Pixelraster gestreut. */
@@ -236,7 +309,7 @@ const spriteCache = new Map<string, ShipSprite>();
 
 /** Zeichnet ein Schiff in ein eigenes Bild. flip = Bug zeigt nach links (Gegner). */
 export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
-  const key = `${def.id}:${flip}`;
+  const key = `${def.id}:${def.art ?? ''}:${flip}`;
   const cached = spriteCache.get(key);
   if (cached) return cached;
   const art = artFor(def);
@@ -270,7 +343,9 @@ export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
         panels: !!part.panels,
         glass: part.mat === 'glass' || part.mat === 'energy',
         stripes: !!part.stripes,
-        bevel: part.mat === 'energy' ? 1 : undefined,
+        bevel: part.mat === 'energy' ? 1 : part.mat === 'truss' ? 2 : undefined,
+        surface: surfaceOf(part.mat),
+        weathered: part.mat === 'hull' || part.mat === 'hull2',
         seed: index * 31 + 5,
         patches: part.mat === 'hull' ? patches : [],
       });
@@ -279,6 +354,11 @@ export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
   });
   ctx.putImageData(image, 0, 0);
   drawGlow(ctx, glowMask, W, H, rampOf(art, 'energy')[3]);
+  for (const mark of art.markings ?? []) {
+    const width = mark.text.length * 4 - 1;
+    const x = mark.x * TILE + ox;
+    drawText(ctx, mark.text, flip ? W - x - width : x, mark.y * TILE + oy, mark.color);
+  }
 
   // Innenleben (immer ungespiegelt gezeichnet, dann passend aufgesetzt)
   const interior = document.createElement('canvas');
@@ -301,7 +381,7 @@ export function buildShipSprite(def: ShipDef, flip: boolean): ShipSprite {
 
 /** Verkleinerte Außenansicht eines Schiffs (ohne Innenleben), z. B. angedockt an der Station. */
 export function buildShipMiniature(def: ShipDef, tile: number): ShipSprite {
-  const key = `mini:${def.id}:${tile}`;
+  const key = `mini:${def.id}:${def.art ?? ''}:${tile}`;
   const cached = spriteCache.get(key);
   if (cached) return cached;
   const art = artFor(def);
@@ -328,9 +408,10 @@ export function buildShipMiniature(def: ShipDef, tile: number): ShipSprite {
       fillPolygon(mask, W, H, pts);
       shadePart(image.data, occupied, W, H, mask, rampOf(art, part.mat).map(rgb), {
         panels: false,
-        glass: part.mat === 'glass',
+        glass: part.mat === 'glass' || part.mat === 'energy',
         stripes: !!part.stripes,
-        bevel: 2,
+        bevel: part.mat === 'truss' ? 1 : 2,
+        surface: surfaceOf(part.mat),
         seed: index * 31 + 5,
         patches: [],
       });
@@ -487,22 +568,6 @@ function drawInterior(ctx: CanvasRenderingContext2D, def: ShipDef, ox: number, o
       }
     }
   }
-
-  // Geschütztürme auf der Hülle
-  def.weapons.forEach((_, index) => {
-    const m = weaponMount(def, index);
-    const x = ox + m.x;
-    const y = oy + m.y;
-    R(x - 1, y - 1, 13, 9, '#080b16');
-    R(x + 11, y + 1, 13, 5, '#080b16');
-    R(x, y, 11, 7, '#59637d');
-    R(x, y, 11, 1, '#a4aec6');
-    R(x, y + 6, 11, 1, '#3d4458');
-    R(x + 12, y + 2, 11, 3, '#6b7590');
-    R(x + 12, y + 2, 11, 1, '#c5cde0');
-    R(x + 20, y + 2, 1, 3, '#3d4458');
-    R(x + 3, y + 2, 4, 3, '#1a1f30');
-  });
 }
 
 interface PropTools {
@@ -787,4 +852,91 @@ export function drawIcon(ctx: CanvasRenderingContext2D, icon: string[], x: numbe
       if (icon[row][col] === '#') ctx.fillRect(x + col, y + row, 1, 1);
     }
   }
+}
+
+export interface TurretSprite {
+  canvas: HTMLCanvasElement;
+  /** Drehpunkt im Bild. */
+  px: number;
+  py: number;
+  /** Abstand der Mündung vom Drehpunkt. */
+  reach: number;
+}
+
+const turretCache = new Map<string, TurretSprite>();
+
+/** Geschütz nach Waffenart, Rohr zeigt nach rechts. Farben aus dem Schiff, auf dem es sitzt. */
+export function buildTurretSprite(weaponId: string, kind: 'laser' | 'torpedo', art: ShipArt): TurretSprite {
+  const key = `${weaponId}:${art.ramps.metal.join()}:${art.ramps.hull2.join()}`;
+  const cached = turretCache.get(key);
+  if (cached) return cached;
+  const canvas = document.createElement('canvas');
+  canvas.width = 46;
+  canvas.height = 30;
+  const ctx = canvas.getContext('2d')!;
+  const px = 12;
+  const py = 15;
+  const metal = art.ramps.metal;
+  const body = art.ramps.hull2;
+  const R = (x: number, y: number, w: number, h: number, c: string) => {
+    ctx.fillStyle = c;
+    ctx.fillRect(x, y, w, h);
+  };
+  const barrel = (y: number, len: number, thick: number) => {
+    R(px + 3, y - 1, len + 1, thick + 2, metal[0]);
+    R(px + 4, y, len, thick, metal[3]);
+    R(px + 4, y, len, 1, metal[5]);
+    if (thick > 2) R(px + 4, y + thick - 1, len, 1, metal[2]);
+    R(px + 4 + len - 4, y - 1, 4, thick + 2, metal[0]);
+    R(px + 4 + len - 3, y, 3, thick, metal[4]);
+    for (let k = px + 8; k < px + len - 3; k += 5) R(k, y, 1, thick, metal[1]);
+  };
+  const ring = (radius: number) => {
+    for (let y = -radius; y <= radius; y++) {
+      for (let x = -radius; x <= radius; x++) {
+        const d = Math.sqrt(x * x + y * y);
+        if (d > radius + 0.4) continue;
+        const shade = d > radius - 0.9 ? 0 : y < -3 ? 4 : y > 3 ? 2 : 3;
+        R(px + x, py + y, 1, 1, body[shade]);
+      }
+    }
+    R(px - 3, py - 3, 6, 6, metal[1]);
+    R(px - 2, py - 2, 4, 4, metal[3]);
+    R(px - 2, py - 2, 2, 1, metal[5]);
+  };
+  let reach: number;
+  if (kind === 'torpedo') {
+    // Werfer: kastiges Gehäuse mit Warnstreifen und zwei Rohröffnungen
+    ring(7);
+    R(px - 8, py - 9, 26, 18, metal[0]);
+    R(px - 7, py - 8, 24, 16, body[3]);
+    R(px - 7, py - 8, 24, 1, body[5]);
+    R(px - 7, py + 7, 24, 1, body[1]);
+    R(px - 7, py - 8, 1, 16, body[4]);
+    for (let k = 0; k < 22; k += 3) R(px - 6 + k, py + 4, 2, 2, k % 6 === 0 ? '#d8b628' : '#16161a');
+    for (const dy of [-5, 1]) {
+      R(px + 16, py + dy - 1, 5, 6, metal[0]);
+      R(px + 17, py + dy, 3, 4, '#05060a');
+      R(px + 17, py + dy, 3, 1, metal[2]);
+    }
+    reach = 20;
+  } else {
+    if (weaponId === 'drillingslaser') {
+      barrel(py - 6, 20, 2);
+      barrel(py - 1, 23, 2);
+      barrel(py + 4, 20, 2);
+      reach = 26;
+    } else if (weaponId === 'zwillingslaser') {
+      barrel(py - 5, 21, 3);
+      barrel(py + 2, 21, 3);
+      reach = 25;
+    } else {
+      barrel(py - 2, 23, 4);
+      reach = 27;
+    }
+    ring(8);
+  }
+  const sprite = { canvas, px, py, reach };
+  turretCache.set(key, sprite);
+  return sprite;
 }

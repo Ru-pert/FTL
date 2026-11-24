@@ -1,6 +1,6 @@
 // Bedienoberfläche als HTML über dem Spielbild: Anzeigen, Energieverteilung, Waffen, Dialoge.
 import { MODULES } from '../data/modules';
-import { SHIPS } from '../data/ships';
+import { PLAYER_DESIGNS, SHIPS } from '../data/ships';
 import { WEAPONS } from '../data/weapons';
 import { loadoutFromProfile, nextCost, type Profile } from '../meta/profile';
 import { capacity, evasion, freePower, repairTarget } from '../sim/battle';
@@ -131,6 +131,7 @@ export function renderBattleHud(state: BattleState, view: HudView): string {
 
 export function renderBaseHud(profile: Profile, message: string | null): string {
   const { loadout } = loadoutFromProfile(profile);
+  const design = PLAYER_DESIGNS.find((d) => d.id === profile.design) ?? PLAYER_DESIGNS[0];
   const modules = MODULES.map((def) => {
     const level = profile.modules[def.id];
     const cost = nextCost(profile, def.id);
@@ -151,6 +152,10 @@ export function renderBaseHud(profile: Profile, message: string | null): string 
       <div class="title hot">HEIMATBASIS</div>
       <div class="crystals"><i class="gem"></i>${profile.crystals} Kristalle</div>
       <div class="dim">Durchläufe: ${profile.runs} · geschafft: ${profile.wins}</div>
+    </div>
+    <div class="designs">
+      <span class="dim">Schiff:</span>
+      <div class="button click" data-act="design">${design.name} ▸<br><span class="dim">${design.role}</span></div>
     </div>
     <div class="modules">${modules}</div>
     <div class="basefoot">

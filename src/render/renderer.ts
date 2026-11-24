@@ -15,9 +15,11 @@ import {
   TILE,
   VIEW_H,
   VIEW_W,
+  opponentCenter,
   weaponMuzzle,
+  weaponPivotScreen,
 } from './layout';
-import { buildShieldSprite, buildShipSprite, drawIcon, type ShipSprite, SYSTEM_ICONS } from './sprites';
+import { buildShieldSprite, buildShipSprite, buildTurretSprite, drawIcon, type ShipSprite, SYSTEM_ICONS } from './sprites';
 
 export const WEAPON_COLORS = ['#5ee6ff', '#ff7ad9', '#ffe45e', '#9dff7a'];
 
@@ -47,11 +49,16 @@ export interface ViewState {
   hoverRoom: number | null;
 }
 
+/** Abstand der Mündung vom Drehpunkt des Geschützes. */
+export function muzzleReach(weaponId: string): number {
+  return WEAPONS[weaponId]?.kind === 'torpedo' ? 20 : 25;
+}
+
 /** Bildschirmposition eines Geschosses; extra = zusätzliche Sekunden für weiche Bewegung. */
 export function projectilePos(state: BattleState, proj: Projectile, extra = 0): { x: number; y: number } {
   const targetSide = other(proj.from);
-  const a = weaponMuzzle(proj.from, SHIPS[state[proj.from].defId], proj.weaponIndex);
   const b = roomCenter(targetSide, SHIPS[state[targetSide].defId], proj.targetRoom);
+  const a = weaponMuzzle(proj.from, SHIPS[state[proj.from].defId], proj.weaponIndex, b, muzzleReach(proj.weaponId));
   const p = Math.max(0, (proj.t + extra) / proj.duration);
   return { x: a.x + (b.x - a.x) * p, y: a.y + (b.y - a.y) * p };
 }
@@ -68,7 +75,12 @@ export class Renderer {
   private screenFlash = 0;
   private shieldFlash: Record<Side, number> = { player: 0, enemy: 0 };
   private hitFlash: Record<Side, number> = { player: 0, enemy: 0 };
-  private muzzleFlash: { side: Side; index: number; age: number }[] = [];
+  private muzzleFlash: { side: Side; index: number; age: number; target: { x: number; y: number } }[] = [];
+  /** Aktueller Winkel jedes Geschützes (dreht sich langsam zum Ziel). */
+  private aim = new Map<string, number>();
+  /** Letztes Ziel jedes Geschützes, damit es nach dem Schuss nicht sofort zurückschwenkt. */
+  private lastTarget = new Map<string, number>();
+  private recoil = new Map<string, number>();
   private deadFor: Record<Side, number | null> = { player: null, enemy: null };
   /** Wie viele Bildschirmpixel ein Spielpixel breit ist. */
   scale = 1;
@@ -108,7 +120,13 @@ export class Renderer {
         this.add('ripple', p.x, p.y, 0, 0, 0.45, 30);
         for (let i = 0; i < 6; i++) this.scatter('spark', p.x, p.y, 30, 90, 0.25, 1);
       } else if (ev.type === 'fire') {
-        this.muzzleFlash.push({ side: ev.side, index: ev.weaponIndex, age: 0 });
+        const proj = [...state.projectiles].reverse().find((p) => p.from === ev.side && p.weaponIndex === ev.weaponIndex);
+        const targetSide = other(ev.side);
+        const target = proj
+          ? roomCenter(targetSide, SHIPS[state[targetSide].defId], proj.targetRoom)
+          : opponentCenter(ev.side);
+        this.muzzleFlash.push({ side: ev.side, index: ev.weaponIndex, age: 0, target });
+        this.recoil.set(`${ev.side}${ev.weaponIndex}`, 1);
       } else if (ev.type === 'destroyed') {
         this.deadFor[ev.side] = 0;
         this.screenFlash = 0.35;
@@ -335,18 +353,42 @@ export class Renderer {
       drawIcon(ctx, SYSTEM_ICONS[room.system], ix + 4, iy + 4, color);
     }
 
-    // Ladeanzeige an den Geschütztürmen
+    // Geschütze: drehen sich zum Ziel, Rückstoß beim Schuss, Rohrspitze leuchtet beim Laden
     if (dead === null) {
+      const targetSide = other(side);
+      const targetDef = SHIPS[state[targetSide].defId];
       ship.weapons.forEach((weapon, index) => {
-        if (!weapon.powered) return;
-        const muzzle = weaponMuzzle(side, def, index);
-        const dir = side === 'player' ? 1 : -1;
-        const pct = weapon.charge / WEAPONS[weapon.defId].chargeTime;
-        const ready = pct >= 1;
-        ctx.globalAlpha = shipAlpha * (ready ? 0.6 + 0.4 * Math.sin(this.time * 10) : 0.25 + pct * 0.6);
-        ctx.fillStyle = side === 'player' ? WEAPON_COLORS[index % WEAPON_COLORS.length] : '#ff6a5a';
-        ctx.fillRect(Math.round(muzzle.x - dir * 18) - 2, Math.round(muzzle.y) - 1, 4, 3);
-        ctx.globalAlpha = shipAlpha;
+        const key = `${side}${index}`;
+        const wdef = WEAPONS[weapon.defId];
+        if (weapon.target !== null) this.lastTarget.set(key, weapon.target);
+        const room = this.lastTarget.get(key);
+        const pivot = weaponPivotScreen(side, def, index);
+        const goal = room !== undefined ? roomCenter(targetSide, targetDef, room) : opponentCenter(side);
+        const wanted = weapon.powered ? Math.atan2(goal.y - pivot.y, goal.x - pivot.x) : side === 'player' ? 0 : Math.PI;
+        let angle = this.aim.get(key) ?? (side === 'player' ? 0 : Math.PI);
+        let diff = wanted - angle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        angle += Math.sign(diff) * Math.min(Math.abs(diff), dtReal * 2.5);
+        this.aim.set(key, angle);
+        const kick = this.recoil.get(key) ?? 0;
+        if (kick > 0) this.recoil.set(key, Math.max(0, kick - dtReal * 4));
+
+        const turret = buildTurretSprite(weapon.defId, wdef.kind, art);
+        ctx.save();
+        ctx.translate(Math.round(pivot.x), Math.round(pivot.y));
+        ctx.rotate(angle);
+        ctx.translate(-Math.round(kick * 4), 0);
+        ctx.drawImage(turret.canvas, -turret.px, -turret.py);
+        if (weapon.powered) {
+          const pct = Math.min(1, weapon.charge / wdef.chargeTime);
+          const ready = pct >= 1;
+          ctx.globalAlpha = shipAlpha * (ready ? 0.65 + 0.35 * Math.sin(this.time * 10) : 0.15 + pct * 0.7);
+          ctx.fillStyle = side === 'player' ? WEAPON_COLORS[index % WEAPON_COLORS.length] : '#ff6a5a';
+          ctx.fillRect(turret.reach - 3, -1, 3, 2);
+          ctx.globalAlpha = shipAlpha;
+        }
+        ctx.restore();
       });
     }
 
@@ -419,7 +461,8 @@ export class Renderer {
     const ctx = this.ctx;
     this.muzzleFlash = this.muzzleFlash.filter((m) => (m.age += dtReal) < 0.14);
     for (const m of this.muzzleFlash) {
-      const p = weaponMuzzle(m.side, SHIPS[state[m.side].defId], m.index);
+      const def = SHIPS[state[m.side].defId];
+      const p = weaponMuzzle(m.side, def, m.index, m.target, muzzleReach(state[m.side].weapons[m.index]?.defId ?? ''));
       const x = Math.round(p.x);
       const y = Math.round(p.y);
       const r = m.age < 0.06 ? 5 : 3;

@@ -2,9 +2,11 @@ import type { ShipDef } from '../sim/types';
 
 // Schiffe als reine Daten. Räume liegen auf einem Kachelraster, das Schiff zeigt nach rechts.
 export const SHIPS: Record<string, ShipDef> = {
+  // Das Spielerschiff. Name und Aussehen kommen aus dem gewählten Entwurf (PLAYER_DESIGNS).
   eisvogel: {
     id: 'eisvogel',
-    name: 'Eisvogel',
+    name: 'Donnerkeil',
+    art: 'donnerkeil',
     maxHull: 30,
     reactor: 6,
     systems: { shields: 2, weapons: 3, engines: 2 },
@@ -116,3 +118,19 @@ export const SHIPS: Record<string, ShipDef> = {
     ],
   },
 };
+
+/** Wählbare Entwürfe für das Spielerschiff: Aussehen (Schlüssel in SHIP_ART) und Name. */
+export const PLAYER_DESIGNS = [
+  { id: 'donnerkeil', name: 'Donnerkeil', role: 'Kanonenboot' },
+  { id: 'frostbrecher', name: 'Frostbrecher', role: 'Eisfrachter' },
+  { id: 'sonnenwind', name: 'Sonnenwind', role: 'Forschungsschiff' },
+] as const;
+
+export type DesignId = (typeof PLAYER_DESIGNS)[number]['id'];
+
+/** Setzt Name und Aussehen des Spielerschiffs auf den gewählten Entwurf. */
+export function applyPlayerDesign(id: DesignId): void {
+  const design = PLAYER_DESIGNS.find((d) => d.id === id) ?? PLAYER_DESIGNS[0];
+  SHIPS.eisvogel.name = design.name;
+  SHIPS.eisvogel.art = design.id;
+}

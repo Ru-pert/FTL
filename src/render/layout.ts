@@ -100,19 +100,40 @@ export function shieldEllipse(side: Side, def: ShipDef) {
   };
 }
 
-/** Position eines Geschützturms relativ zum Raumraster (Bug nach rechts). */
-export function weaponMount(def: ShipDef, index: number): { x: number; y: number } {
+/** Drehpunkt eines Geschützes in Pixeln relativ zum Raumraster (Bug nach rechts). */
+export function weaponPivot(def: ShipDef, index: number): { x: number; y: number } {
+  const mount = artFor(def).mounts?.[index];
+  if (mount) return { x: mount.x * TILE, y: mount.y * TILE };
+  // Ohne eigene Angabe: nebeneinander am Rand des Waffenraums
   const room = def.rooms.find((r) => r.system === 'weapons') ?? def.rooms[0];
   const { rows } = shipSize(def);
   const lower = room.y + room.h / 2 > rows / 2;
   return {
-    x: room.x * TILE + 5 + index * (def.weapons.length > 2 ? 15 : 21),
-    y: lower ? (room.y + room.h) * TILE + 2 : room.y * TILE - 9,
+    x: room.x * TILE + 10 + index * (def.weapons.length > 2 ? 16 : 22),
+    y: lower ? (room.y + room.h) * TILE + 4 : room.y * TILE - 4,
   };
 }
 
-/** Bildschirmposition der Mündung: von hier starten die Schüsse. */
-export function weaponMuzzle(side: Side, def: ShipDef, index: number): { x: number; y: number } {
-  const mount = weaponMount(def, index);
-  return localToScreen(side, def, mount.x + 23, mount.y + 3);
+/** Mittelpunkt des gegnerischen Schiffs, auf den Geschütze ohne Ziel zeigen. */
+export function opponentCenter(side: Side): { x: number; y: number } {
+  return CENTERS[side === 'player' ? 'enemy' : 'player'];
+}
+
+/** Bildschirmposition des Drehpunkts. */
+export function weaponPivotScreen(side: Side, def: ShipDef, index: number): { x: number; y: number } {
+  const p = weaponPivot(def, index);
+  return localToScreen(side, def, p.x, p.y);
+}
+
+/** Mündung eines Geschützes, das auf target zielt: von hier starten die Schüsse. */
+export function weaponMuzzle(
+  side: Side,
+  def: ShipDef,
+  index: number,
+  target: { x: number; y: number } = opponentCenter(side),
+  reach = 18,
+): { x: number; y: number } {
+  const p = weaponPivotScreen(side, def, index);
+  const angle = Math.atan2(target.y - p.y, target.x - p.x);
+  return { x: p.x + Math.cos(angle) * reach, y: p.y + Math.sin(angle) * reach };
 }
